@@ -34,7 +34,7 @@ Options:
     * delete fileName   Delete file
     * search string     (note that this string could be blank to search for all files)
 ```
-The task list, hardware information, system information, and task information can all be turned on/off with the command line options. By default, all of them are displayed.
+To ensure the system is trustworthy, CSS acknowledge each of these operations as either successful or a failure. 
 
 ### Included Files
 There are several files included. These are:
