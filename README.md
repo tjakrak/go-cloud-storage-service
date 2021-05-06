@@ -1,6 +1,6 @@
 # Project 4: Cloud Storage Service
-Author: Marisa Tania, Ryan Tjakrakartadinata
-Professor: Matthew Malensek
+Author: Marisa Tania, Ryan Tjakrakartadinata\
+Professor: Matthew Malensek\
 See project spec here: https://www.cs.usfca.edu/~mmalensek/cs521/assignments/project-4.html
 
 ## About CSS
