@@ -1,8 +1,10 @@
 package message
 
 import (
+	"bufio"
 	"encoding/gob"
 	"fmt"
+	"io"
 	"net"
 )
 
@@ -30,6 +32,9 @@ type Message struct {
 func New(ty MessageType, size int) *Message { // return a pointer to a message, without pointer it's ectra copy
 	head := MessageHeader{size, ty}
 	msg := Message{head, "GoDrive", "Hello world!"}
+	//... various prep work, sending the header ...
+	// open file pass it to io.Copy
+
 	return &msg
 }
 
@@ -39,7 +44,15 @@ func (m *Message) Print() {
 }
 
 func (m *Message) Send(conn net.Conn) error {
-	encoder := gob.NewEncoder(conn)
+	// prefix the send with a size
+	// create the buffered writer ourselves so gob doesn't do it
+	bconn := bufio.NewWriter(conn)
+	encoder := gob.NewEncoder(bconn)
 	err := encoder.Encode(m)
+	//... various prep work, sending the header ...
+	// open file pass it to io.Copy
+	sz, err := io.Copy(bconn, file)
+	// ensure all data is written out to the socket
+	bconn.Flush()
 	return err
 }

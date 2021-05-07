@@ -1,9 +1,9 @@
 package main
 
 import (
-	//"encoding/gob"
+	"encoding/gob"
 	"fmt"
-	//"godrive/message"
+	"godrive/message"
 	"io"
 	"log"
 	"net"
@@ -12,17 +12,17 @@ import (
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
-	// decoder := gob.NewDecoder(conn)
-	// msg := &message.MessageHeader{}
-	// decoder.Decode(msg)
-	// fmt.Println(msg)
+	decoder := gob.NewDecoder(conn)
+	msg := &message.MessageHeader{}
+	decoder.Decode(msg)
+	fmt.Println(msg)
 
 	file, err := os.OpenFile("newfile.txt", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 
-	_, err = io.Copy(file, conn)
+	_, err = io.CopyN(file, conn, size)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
