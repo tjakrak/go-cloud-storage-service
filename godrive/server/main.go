@@ -22,6 +22,7 @@ func handleConnection(conn net.Conn) {
 		fmt.Println(err.Error())
 	}
 
+	var size int64 // get from header
 	_, err = io.CopyN(file, conn, size)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -30,7 +31,7 @@ func handleConnection(conn net.Conn) {
 }
 
 func main() {
-	listener, err := net.Listen("tcp", ":9998")
+	listener, err := net.Listen("tcp", ":9995")
 	if err != nil {
 		log.Fatalln(err.Error())
 		return
