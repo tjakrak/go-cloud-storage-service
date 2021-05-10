@@ -28,7 +28,7 @@ func handleConnection(conn net.Conn) {
 		fmt.Println(err.Error())
 	}
 	log.Printf("Header size: %d\n", msg.Head.Size)
-	bytes, err := io.CopyN(file, conn, msg.Head.Size)
+	bytes, err := io.CopyN(file, bconn, msg.Head.Size)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
