@@ -17,19 +17,19 @@ const (
 	StorageRequest   MessageType = iota // 0 auto incrementing variable (1 + the last)
 	RetrievalRequest                    // 1
 	SearchRequest                       // 2
-	DeleteRequest
+	DeleteRequest                       //--> use in the server to check what kind of connection the server get
 )
 
 type MessageHeader struct {
-	Size int
+	Size int64
 	Type MessageType
 	// File *os.File
 	Filename string
 }
 
 type Message struct {
-	Head MessageHeader
-	Name string //Capitalize means public
+	Head MessageHeader // definitely keep the header
+	Name string        //Capitalize means public
 	Body string
 }
 
@@ -40,7 +40,7 @@ type GetRequest struct {
 }
 
 /* constructor */
-func New(ty MessageType, size int, fileName string) *Message { // return a pointer to a message, without pointer it's ectra copy
+func New(ty MessageType, size int64, fileName string) *Message { // return a pointer to a message, without pointer it's ectra copy
 	//... various prep work, sending the header ...
 	// open file pass it to io.Copy
 	// file, err := os.OpenFile("test.txt", os.O_RDONLY, 0666)

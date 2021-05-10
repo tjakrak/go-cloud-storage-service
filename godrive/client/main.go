@@ -25,17 +25,26 @@ func main() {
 	}
 	defer conn.Close()
 	var msg *message.Message
+
+	fileStat, err := os.Stat(userInput[3])
+	if err != nil {
+		log.Fatalln(err.Error())
+		return
+	}
+	fileSize := fileStat.Size()
+	log.Printf("File Size: %d\n", fileSize)
+
 	// figure out put or get userInput[2]
 	if userInput[2] == "put" {
-		msg = message.New(message.StorageRequest, 300, userInput[3])
+		msg = message.New(message.StorageRequest, fileSize, userInput[3]) //use os.stat
 		//msg.Send(conn)
 	} else if userInput[2] == "get" {
-		msg = message.New(message.RetrievalRequest, 300, userInput[3])
+		msg = message.New(message.RetrievalRequest, fileSize, userInput[3])
 		//msg.get(conn)
 	} else if userInput[2] == "search" {
-		msg = message.New(message.SearchRequest, 300, userInput[3])
+		msg = message.New(message.SearchRequest, fileSize, userInput[3])
 	} else if userInput[2] == "delete" {
-		msg = message.New(message.DeleteRequest, 300, userInput[3])
+		msg = message.New(message.DeleteRequest, fileSize, userInput[3])
 	} else {
 		log.Fatalln(err.Error())
 	}
