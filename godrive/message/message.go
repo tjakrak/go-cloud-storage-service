@@ -17,6 +17,7 @@ const (
 	StorageRequest   MessageType = iota // 0 auto incrementing variable (1 + the last)
 	RetrievalRequest                    // 1
 	SearchRequest                       // 2
+	DeleteRequest
 )
 
 type MessageHeader struct {
@@ -30,6 +31,12 @@ type Message struct {
 	Head MessageHeader
 	Name string //Capitalize means public
 	Body string
+}
+
+type PutRequest struct {
+}
+
+type GetRequest struct {
 }
 
 /* constructor */

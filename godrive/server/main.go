@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/gob"
 	"fmt"
 	"godrive/message"
@@ -12,7 +13,8 @@ import (
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
-	decoder := gob.NewDecoder(conn)
+	bconn := bufio.NewReader(conn)
+	decoder := gob.NewDecoder(bconn)
 	msg := &message.MessageHeader{}
 	decoder.Decode(msg)
 	fmt.Println(msg)
@@ -22,12 +24,15 @@ func handleConnection(conn net.Conn) {
 		fmt.Println(err.Error())
 	}
 
-	var size int64 // get from header
-	_, err = io.CopyN(file, conn, size)
+	byte, err := io.CopyN(file, conn, int64(msg.Size))
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	log.Printf("New file size: %d\n", byte)
+
+	// io.Copy(file, conn)
 	// use io.CopyN for a certain byte for exp header of file
+
 }
 
 func main() {
@@ -39,6 +44,7 @@ func main() {
 
 	for {
 		if conn, err := listener.Accept(); err == nil {
+			log.Println("handling connection...")
 			go handleConnection(conn)
 		}
 	}
