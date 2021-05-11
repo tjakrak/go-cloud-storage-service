@@ -77,3 +77,25 @@ func (m *Message) Send(conn net.Conn) error {
 	bconn.Flush()
 	return err
 }
+
+func (m *Message) Get(conn net.Conn) error {
+	bconn := bufio.NewReader(conn)
+	decoder := gob.NewDecoder(bconn)
+	err := decoder.Decode(m)
+	check(err)
+	fmt.Println(m)
+
+	file, err := os.OpenFile(m.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+	check(err)
+	log.Printf("Header size: %d\n", m.Head.Size)
+	bytes, err := io.CopyN(file, bconn, m.Head.Size)
+	check(err)
+	log.Printf("New file size: %d\n", bytes)
+	return err
+}
+
+func check(e error) {
+	if e != nil {
+		log.Fatalln(e.Error())
+	}
+}
