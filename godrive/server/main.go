@@ -21,7 +21,6 @@ func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	bconn := bufio.NewReader(conn)
 	decoder := gob.NewDecoder(bconn)
-	// msg := &message.MessageHeader{}
 	msg := &message.Message{}
 	err := decoder.Decode(msg)
 	check(err)
@@ -44,9 +43,7 @@ func handleConnection(conn net.Conn) {
 	bytes, err := io.CopyN(file, bconn, msg.Head.Size)
 	check(err)
 	log.Printf("New file size: %d\n", bytes)
-
-	// io.Copy(file, conn)
-	// use io.CopyN for a certain byte for exp header of file
+	// check(err)
 }
 
 func main() {

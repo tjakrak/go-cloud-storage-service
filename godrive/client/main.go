@@ -36,15 +36,15 @@ func main() {
 
 	// figure out put or get userInput[2]
 	if userInput[2] == "put" {
-		msg = message.New(message.StorageRequest, fileSize, userInput[3]) //use os.stat
+		msg = message.New(0, fileSize, userInput[3]) //use os.stat
 		//msg.Send(conn)
 	} else if userInput[2] == "get" {
-		msg = message.New(message.RetrievalRequest, fileSize, userInput[3])
-		//msg.get(conn)
+		msg = message.New(1, fileSize, userInput[3])
+		//msg.Get(conn)
 	} else if userInput[2] == "search" {
-		msg = message.New(message.SearchRequest, fileSize, userInput[3])
+		msg = message.New(2, fileSize, userInput[3])
 	} else if userInput[2] == "delete" {
-		msg = message.New(message.DeleteRequest, fileSize, userInput[3])
+		msg = message.New(3, fileSize, userInput[3])
 	} else {
 		log.Fatalln(err.Error())
 	}

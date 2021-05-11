@@ -21,9 +21,8 @@ const (
 )
 
 type MessageHeader struct {
-	Size int64
-	Type MessageType
-	// File *os.File
+	Size     int64
+	Type     MessageType
 	Filename string
 }
 
@@ -40,15 +39,7 @@ type GetRequest struct {
 }
 
 /* constructor */
-func New(ty MessageType, size int64, fileName string) *Message { // return a pointer to a message, without pointer it's ectra copy
-	//... various prep work, sending the header ...
-	// open file pass it to io.Copy
-	// file, err := os.OpenFile("test.txt", os.O_RDONLY, 0666)
-	// if err != nil {
-	// 	log.Fatalln(err.Error())
-	// }
-	// io.Copy(conn, file)
-
+func New(ty MessageType, size int64, fileName string) *Message { // return a pointer to a message, without pointer it's extra copy
 	head := MessageHeader{size, ty, fileName}
 	//head := MessageHeader{size, ty, file}
 	msg := Message{head, "GoDrive", "Hello world!"}
@@ -75,7 +66,7 @@ func (m *Message) Send(conn net.Conn) error {
 	if err2 != nil {
 		log.Fatalln(err2.Error())
 	}
-	// ... various prep work, sending the header ...
+
 	// open file pass it to io.Copy
 	sz, err := io.Copy(bconn, file)
 	if err != nil {
