@@ -11,6 +11,12 @@ import (
 	"os"
 )
 
+func check(e error) {
+	if e != nil {
+		log.Fatalln(e.Error())
+	}
+}
+
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	bconn := bufio.NewReader(conn)
@@ -18,20 +24,25 @@ func handleConnection(conn net.Conn) {
 	// msg := &message.MessageHeader{}
 	msg := &message.Message{}
 	err := decoder.Decode(msg)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	check(err)
 	fmt.Println(msg)
 
-	file, err := os.OpenFile("newfile.txt", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-	if err != nil {
-		fmt.Println(err.Error())
+	if _, err := os.Stat("./storage"); err != nil {
+		if os.IsNotExist(err) {
+			err2 := os.Mkdir("./storage", 0755)
+			check(err2)
+		}
 	}
+	os.Chdir("./storage")
+	newDir, err := os.Getwd()
+	check(err)
+	log.Printf("Current Working Directory: %s\n", newDir)
+
+	file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+	check(err)
 	log.Printf("Header size: %d\n", msg.Head.Size)
 	bytes, err := io.CopyN(file, bconn, msg.Head.Size)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	check(err)
 	log.Printf("New file size: %d\n", bytes)
 
 	// io.Copy(file, conn)
