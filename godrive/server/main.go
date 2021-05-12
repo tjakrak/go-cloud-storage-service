@@ -1,11 +1,7 @@
 package main
 
 import (
-	"bufio"
-	"encoding/gob"
-	"fmt"
 	"godrive/message"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -19,12 +15,12 @@ func check(e error) {
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
-	bconn := bufio.NewReader(conn)
-	decoder := gob.NewDecoder(bconn)
+	// bconn := bufio.NewReader(conn)
+	// decoder := gob.NewDecoder(bconn)
 	msg := &message.Message{}
-	err := decoder.Decode(msg)
-	check(err)
-	fmt.Println(msg)
+	// err := decoder.Decode(msg)
+	// check(err)
+	// fmt.Println(msg)
 
 	if _, err := os.Stat("./storage"); err != nil {
 		if os.IsNotExist(err) {
@@ -37,13 +33,19 @@ func handleConnection(conn net.Conn) {
 	check(err)
 	log.Printf("Current Working Directory: %s\n", newDir)
 
-	file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-	check(err)
-	log.Printf("Header size: %d\n", msg.Head.Size)
-	bytes, err := io.CopyN(file, bconn, msg.Head.Size)
-	check(err)
-	log.Printf("New file size: %d\n", bytes)
+	// file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	// check(err)
+	// log.Printf("Header size: %d\n", msg.Head.Size)
+	// bytes, err := io.CopyN(file, bconn, msg.Head.Size)
+	// check(err)
+	// log.Printf("New file size: %d\n", bytes)
+	// check(err)
+	if msg.Head.Type == 0 {
+		msg.Get(conn)
+	} else {
+		msg.Put(conn)
+	}
+
 }
 
 func main() {
