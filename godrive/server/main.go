@@ -9,10 +9,10 @@ package main
 
 
 import (
-	"bufio"
-	"encoding/gob"
+//	"bufio"
+//	"encoding/gob"
 	"godrive/message"
-	"io"
+//	"io"
 	"log"
 	"net"
 	"os"
@@ -74,7 +74,7 @@ func handleConnection(conn net.Conn) {
 //	check(err)
 //	log.Printf("File size: %d", sz)
 	// ensure all data is written out to the socket
-	bconn.Flush()
+//	bconn.Flush()
 
 }
 
