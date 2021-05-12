@@ -38,12 +38,6 @@ type Message struct {
 	Body string
 }
 
-type PutRequest struct {
-}
-
-type GetRequest struct {
-}
-
 /* constructor */
 func New(ty MessageType, size int64, fileName string) *Message { // return a pointer to a message, without pointer it's extra copy
 	head := MessageHeader{size, ty, fileName}
@@ -59,29 +53,8 @@ func (m *Message) Print() {
 }
 
 func (m *Message) Send(conn net.Conn) error {
-	// file, err := os.OpenFile(m.Head.Filename, os.O_RDONLY, 0666)
-	// if err != nil {
-	// 	log.Fatalln(err.Error())
-	// }
-
-	// // prefix the send with a size
-	// // create the buffered writer ourselves so gob doesn't do it
-	// bconn := bufio.NewWriter(conn)
-	// encoder := gob.NewEncoder(bconn)
-	// err2 := encoder.Encode(m)
-	// if err2 != nil {
-	// 	log.Fatalln(err2.Error())
-	// }
-
-	// // open file pass it to io.Copy
-	// sz, err := io.Copy(bconn, file)
-	// if err != nil {
-	// 	log.Fatalln(err.Error())
-	// }
-	// log.Printf("File size: %d", sz)
-	// // ensure all data is written out to the socket
-	// bconn.Flush()
 	var err error
+    fmt.Printf("MSGTYPE: %d\n", m.Head.Type)
 	if m.Head.Type == 0 {
 		err = m.Put(conn)
 	} else if m.Head.Type == 1 {
@@ -91,9 +64,11 @@ func (m *Message) Send(conn net.Conn) error {
 }
 
 func (m *Message) Put(conn net.Conn) error {
-	file, err := os.OpenFile(m.Head.Filename, os.O_RDONLY, 0666)
+
+    file, err := os.OpenFile("test.txt", os.O_RDONLY, 0666)
+//	file, err := os.OpenFile(m.Head.Filename, os.O_RDONLY, 0666)
 	if err != nil {
-		log.Fatalln(err.Error())
+        log.Fatalln(err.Error())
 	}
 
 	// prefix the send with a size
@@ -110,6 +85,7 @@ func (m *Message) Put(conn net.Conn) error {
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+
 	log.Printf("File size: %d", sz)
 	// ensure all data is written out to the socket
 	bconn.Flush()
@@ -121,7 +97,6 @@ func (m *Message) Get(conn net.Conn) error {
 	decoder := gob.NewDecoder(bconn)
 	err := decoder.Decode(m)
 	check(err)
-	fmt.Println(m)
 
 	file, err := os.OpenFile(m.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	check(err)
