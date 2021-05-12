@@ -1,11 +1,22 @@
 package main
 
 import (
+	"bufio"
+	"encoding/gob"
+	"fmt"
 	"godrive/message"
+	"io"
 	"log"
 	"net"
 	"os"
 )
+
+type MessageHandler func(*message.MessageHeader, *message.Message, net.Conn)
+
+var handlers = map[message.MessageType]MessageHandler{
+	message.StorageRequest:   handlePutReq,
+	message.RetrievalRequest: handleGetReq,
+}
 
 func check(e error) {
 	if e != nil {
@@ -15,12 +26,12 @@ func check(e error) {
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
-	// bconn := bufio.NewReader(conn)
-	// decoder := gob.NewDecoder(bconn)
 	msg := &message.Message{}
-	// err := decoder.Decode(msg)
-	// check(err)
-	// fmt.Println(msg)
+	//msg := message.New(conn)
+	// header := msg.ReadHeader()
+	header := &msg.Head
+	log.Println("Incoming message header: ", header)
+	log.Println("Message type: ", header.Type)
 
 	if _, err := os.Stat("./storage"); err != nil {
 		if os.IsNotExist(err) {
@@ -33,19 +44,29 @@ func handleConnection(conn net.Conn) {
 	check(err)
 	log.Printf("Current Working Directory: %s\n", newDir)
 
-	// file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-	// check(err)
-	// log.Printf("Header size: %d\n", msg.Head.Size)
-	// bytes, err := io.CopyN(file, bconn, msg.Head.Size)
-	// check(err)
-	// log.Printf("New file size: %d\n", bytes)
-	// check(err)
-	if msg.Head.Type == 0 {
-		msg.Get(conn)
+	handler := handlers[header.Type]
+	if handler != nil {
+		handler(header, msg, conn)
 	} else {
-		msg.Put(conn)
+		log.Println("No handler for message type: ", header.Type)
 	}
+}
 
+func handlePutReq(header *message.MessageHeader, msg *message.Message, conn net.Conn) {
+	bconn := bufio.NewReader(conn)
+	decoder := gob.NewDecoder(bconn)
+	err := decoder.Decode(msg)
+	check(err)
+	fmt.Println(msg)
+	file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+	check(err)
+	log.Printf("Header size: %d\n", msg.Head.Size)
+	bytes, err := io.CopyN(file, bconn, msg.Head.Size)
+	check(err)
+	log.Printf("New file size: %d\n", bytes)
+}
+
+func handleGetReq(header *message.MessageHeader, msg *message.Message, conn net.Conn) {
 }
 
 func main() {

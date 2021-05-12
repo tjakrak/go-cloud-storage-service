@@ -13,12 +13,6 @@ import (
 // enumeration
 type MessageType int
 
-// type MessageHandler func(*message.Header, *message.Message)
-// var handlers = map[message.MessageType]MessageHandler{
-// message.PutRequest: handlePutReq,
-// message.GetRequest: handleGetReq,
-// }
-
 const (
 	StorageRequest   MessageType = iota // 0 auto incrementing variable (1 + the last)
 	RetrievalRequest                    // 1
@@ -42,6 +36,8 @@ type PutRequest struct {
 }
 
 type GetRequest struct {
+	Type     MessageType
+	Filename string
 }
 
 /* constructor */
@@ -49,13 +45,19 @@ func New(ty MessageType, size int64, fileName string) *Message { // return a poi
 	head := MessageHeader{size, ty, fileName}
 	//head := MessageHeader{size, ty, file}
 	msg := Message{head, "GoDrive", "Hello world!"}
-
 	return &msg
 }
+
+// // Option definition
+// type Option func(*Message) Message
 
 /* Reciever function */
 func (m *Message) Print() {
 	fmt.Println(m)
+}
+
+func (m *Message) ReadHeader() MessageHeader {
+	return m.Head
 }
 
 func (m *Message) Send(conn net.Conn) error {
@@ -84,9 +86,10 @@ func (m *Message) Send(conn net.Conn) error {
 	var err error
 	if m.Head.Type == 0 {
 		err = m.Put(conn)
-	} else if m.Head.Type == 1 {
-		err = m.Get(conn)
 	}
+	// else if m.Head.Type == 1 {
+	// 	err = m.Get(conn)
+	// }
 	return err
 }
 
@@ -101,36 +104,38 @@ func (m *Message) Put(conn net.Conn) error {
 	bconn := bufio.NewWriter(conn)
 	encoder := gob.NewEncoder(bconn)
 	err2 := encoder.Encode(m)
-	if err2 != nil {
-		log.Fatalln(err2.Error())
-	}
+	check(err2)
 
 	// open file pass it to io.Copy
 	sz, err := io.Copy(bconn, file)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
+	check(err)
 	log.Printf("File size: %d", sz)
 	// ensure all data is written out to the socket
 	bconn.Flush()
 	return err
 }
 
-func (m *Message) Get(conn net.Conn) error {
-	bconn := bufio.NewReader(conn)
-	decoder := gob.NewDecoder(bconn)
-	err := decoder.Decode(m)
-	check(err)
-	fmt.Println(m)
+// func (m *Message) openConnection(conn net.Conn) (error, *bufio.Reader) {
+// 	bconn := bufio.NewReader(conn)
+// 	decoder := gob.NewDecoder(bconn)
+// 	err := decoder.Decode(m)
+// 	check(err)
+// 	fmt.Println(m)
+// 	return err, bconn
+// }
 
-	file, err := os.OpenFile(m.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-	check(err)
-	log.Printf("Header size: %d\n", m.Head.Size)
-	bytes, err := io.CopyN(file, bconn, m.Head.Size)
-	check(err)
-	log.Printf("New file size: %d\n", bytes)
-	return err
-}
+// func goToStorageDirectory() {
+// 	if _, err := os.Stat("./storage"); err != nil {
+// 		if os.IsNotExist(err) {
+// 			err2 := os.Mkdir("./storage", 0755)
+// 			check(err2)
+// 		}
+// 	}
+// 	os.Chdir("./storage")
+// 	newDir, err := os.Getwd()
+// 	check(err)
+// 	log.Printf("Current Working Directory: %s\n", newDir)
+// }
 
 func check(e error) {
 	if e != nil {
