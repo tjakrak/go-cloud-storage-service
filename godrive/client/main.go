@@ -38,10 +38,10 @@ func main() {
         fileSize := fileStat.Size()
         log.Printf("File Size: %d\n", fileSize)
 		msg = message.New(0, fileSize, userInput[3]) //use os.stat
-        msg.Send(conn)
+        msg.Put(conn)
 	} else if userInput[2] == "get" {
 		msg = message.New(1, 0, userInput[3])
-		//msg.Get2(conn)
+		msg.Get2(conn)
 	} else if userInput[2] == "search" {
 		msg = message.New(2, 0, userInput[3])
 	} else if userInput[2] == "delete" {
