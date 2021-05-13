@@ -31,7 +31,7 @@ type Message struct {
 	Body string
 }
 
-/* constructor */
+/* Constructor */
 func New(ty MessageType, size int64, fileName string) *Message { // return a pointer to a message, without pointer it's extra copy
 	head := MessageHeader{size, ty, fileName}
 	var request string
@@ -50,20 +50,20 @@ func (m *Message) Print() {
 	fmt.Println(m)
 }
 
+/* Sending connection based on request type */
 func (m *Message) Send(conn net.Conn) error {
-	log.Printf("In message send. File type: %d", m.Head.Type)
 	var err error
 	if m.Head.Type == 0 {
 		err = m.Put(conn)
 		check(err)
 	} else if m.Head.Type == 1 {
-		log.Printf("In message send if get. File name: %s", m.Head.Filename)
 		err = m.GetRequest(conn)
 		check(err)
 	}
 	return err
 }
 
+/* PutRequest storing file */
 func (m *Message) Put(conn net.Conn) error {
 	file, err := os.OpenFile(m.Head.Filename, os.O_RDONLY, 0666)
 	if err != nil {
@@ -81,23 +81,13 @@ func (m *Message) Put(conn net.Conn) error {
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
-	log.Printf("File size: %d", sz)
+	log.Printf("Storing File size: %d", sz)
 
 	bconn.Flush()
 	return err
 }
 
-func (m *Message) Get(bconn *bufio.Reader) error {
-	file, err := os.OpenFile(m.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-	check(err)
-	log.Printf("Header size: %d\n", m.Head.Size)
-	bytes, err := io.CopyN(file, bconn, m.Head.Size)
-	check(err)
-
-	log.Printf("New file size: %d\n", bytes)
-	return err
-}
-
+/* GetRequest to retrieve file */
 func (m *Message) GetRequest(conn net.Conn) error {
 	bconn := bufio.NewWriter(conn)
 	encoder := gob.NewEncoder(bconn)
@@ -115,14 +105,15 @@ func (m *Message) GetRequest(conn net.Conn) error {
 
 	file, err := os.OpenFile(m.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	check(err)
-	log.Printf("Header size: %d\n", m.Head.Size)
+	log.Printf("MSG GetRequest -> Header size: %d\n", m.Head.Size)
 	bytes, err := io.CopyN(file, cconn, m.Head.Size)
 	check(err)
 
-	log.Printf("New file size: %d\n", bytes)
+	log.Printf("MSG GetRequest -> New file size: %d\n", bytes)
 	return err2
 }
 
+/* Check error */
 func check(e error) {
 	if e != nil {
 		log.Fatalln(e.Error())
