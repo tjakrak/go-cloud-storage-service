@@ -58,14 +58,25 @@ func (m *Message) Send(conn net.Conn) error {
 	} else if m.Head.Type == 1 {
 		err = m.GetRequest(conn)
 		m.Check(err)
+	} else if m.Head.Type == 2 {
+		err = m.SearchRequest(conn)
+		m.Check(err)
 	} else if m.Head.Type == 3 {
 		err = m.DeleteRequest(conn)
+		m.Check(err)
 	}
 	return err
 }
 
 /* Deleting file */
 func (m *Message) DeleteRequest(conn net.Conn) error {
+	err := m.setEncoder(conn)
+	m.Check(err)
+	return err
+}
+
+/* Deleting file */
+func (m *Message) SearchRequest(conn net.Conn) error {
 	err := m.setEncoder(conn)
 	m.Check(err)
 	return err

@@ -3,8 +3,10 @@ package main
 import (
 	"bufio"
 	"encoding/gob"
+	"fmt"
 	"godrive/message"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -29,12 +31,10 @@ func handleConnection(conn net.Conn) {
 	msg := &message.Message{}
 	decoder.Decode(msg)
 	changeDirectory(msg)
-
 	log.Printf("Filename: %s", msg.Head.Filename)
 	log.Printf("Type: %d", msg.Head.Type)
 
 	header := &msg.Head
-	log.Printf("Header type in server: %d", header.Type)
 	handler := handlers[header.Type]
 	if handler != nil {
 		handler(conn, bconn, msg)
@@ -44,11 +44,10 @@ func handleConnection(conn net.Conn) {
 }
 
 /* Change directory to storage */
-func changeDirectory(msg *message.Message) {
+func changeDirectory(msg *message.Message) string {
 	path, err := os.Getwd()
 	msg.Check(err)
 	log.Printf("Current directory: %s\n", path)
-	log.Println(strings.HasSuffix(path, "/storage"))
 	if !(strings.HasSuffix(path, "/storage")) {
 		if _, err := os.Stat("./storage"); err != nil {
 			if os.IsNotExist(err) {
@@ -57,10 +56,11 @@ func changeDirectory(msg *message.Message) {
 			}
 		}
 		os.Chdir("./storage")
-		newDir, err := os.Getwd()
+		path, err = os.Getwd()
 		msg.Check(err)
-		log.Printf("New current Working Directory: %s\n", newDir)
+		log.Printf("New current working directory: %s\n", path)
 	}
+	return path
 }
 
 /* Handling put request */
@@ -83,14 +83,21 @@ func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 
 /* Handling search request */
 func handleSearchReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
-
+	path := changeDirectory(msg)
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, f := range files {
+		fmt.Println(f.Name())
+	}
 }
 
 /* Handling delete request */
 func handleDeleteReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
-	log.Println("Inside server delete request")
 	err := os.Remove(msg.Head.Filename)
 	msg.Check(err)
+	log.Printf("Deleted file: %s", msg.Head.Filename)
 }
 
 func main() {
