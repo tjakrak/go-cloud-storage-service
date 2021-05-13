@@ -47,9 +47,9 @@ func handleConnection(conn net.Conn) {
 func changeDirectory(msg *message.Message) {
 	path, err := os.Getwd()
 	msg.Check(err)
-	currDir, _ := os.Getwd()
-	log.Printf("Current directory: %s\n", currDir)
-	if !strings.HasSuffix(path, "./storage") {
+	log.Printf("Current directory: %s\n", path)
+	log.Println(strings.HasSuffix(path, "/storage"))
+	if !(strings.HasSuffix(path, "/storage")) {
 		if _, err := os.Stat("./storage"); err != nil {
 			if os.IsNotExist(err) {
 				err = os.Mkdir("./storage", 0755)
