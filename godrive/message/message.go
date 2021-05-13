@@ -13,10 +13,10 @@ import (
 type MessageType int
 
 const (
-	StorageRequest   MessageType = iota // 0
-	RetrievalRequest                    // 1
-	SearchRequest                       // 2
-	DeleteRequest                       // 3
+	StorageRequest MessageType = iota
+	RetrievalRequest
+	SearchRequest
+	DeleteRequest
 )
 
 type MessageHeader struct {
@@ -41,7 +41,6 @@ func New(ty MessageType, size int64, fileName string) *Message { // return a poi
 		request = "get"
 	}
 	msg := Message{head, head.Filename, request}
-
 	return &msg
 }
 
@@ -54,17 +53,37 @@ func (m *Message) Print() {
 func (m *Message) Send(conn net.Conn) error {
 	var err error
 	if m.Head.Type == 0 {
-		err = m.Put(conn)
+		err = m.PutRequest(conn)
 		m.Check(err)
 	} else if m.Head.Type == 1 {
 		err = m.GetRequest(conn)
 		m.Check(err)
+	} else if m.Head.Type == 3 {
+		err = m.DeleteRequest(conn)
 	}
 	return err
 }
 
+/* Deleting file */
+func (m *Message) DeleteRequest(conn net.Conn) error {
+	err := m.setEncoder(conn)
+	m.Check(err)
+	return err
+}
+
+/* Encoding */
+func (m *Message) setEncoder(conn net.Conn) error {
+	bconn := bufio.NewWriter(conn)
+	encoder := gob.NewEncoder(bconn)
+	err := encoder.Encode(m)
+	m.Check(err)
+
+	bconn.Flush()
+	return err
+}
+
 /* PutRequest storing file */
-func (m *Message) Put(conn net.Conn) error {
+func (m *Message) PutRequest(conn net.Conn) error {
 
 	file, err := os.OpenFile("test.txt", os.O_RDONLY, 0666)
 	m.Check(err)
@@ -84,16 +103,11 @@ func (m *Message) Put(conn net.Conn) error {
 
 /* GetRequest to retrieve file */
 func (m *Message) GetRequest(conn net.Conn) error {
-	bconn := bufio.NewWriter(conn)
-	encoder := gob.NewEncoder(bconn)
-	err := encoder.Encode(m)
-	m.Check(err)
-
-	bconn.Flush()
+	m.setEncoder(conn)
 
 	cconn := bufio.NewReader(conn)
 	decoder := gob.NewDecoder(cconn)
-	err = decoder.Decode(m)
+	err := decoder.Decode(m)
 	m.Check(err)
 
 	file, err := os.OpenFile(m.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)

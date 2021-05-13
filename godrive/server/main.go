@@ -16,6 +16,8 @@ type RequestHandler func(net.Conn, *bufio.Reader, *message.Message)
 var handlers = map[message.MessageType]RequestHandler{
 	message.StorageRequest:   handlePutReq,
 	message.RetrievalRequest: handleGetReq,
+	message.SearchRequest:    handleSearchReq,
+	message.DeleteRequest:    handleDeleteReq,
 }
 
 /* Handling connections from client */
@@ -45,7 +47,9 @@ func handleConnection(conn net.Conn) {
 func changeDirectory(msg *message.Message) {
 	path, err := os.Getwd()
 	msg.Check(err)
-	if strings.HasSuffix(path, "./storage") {
+	currDir, _ := os.Getwd()
+	log.Printf("Current directory: %s\n", currDir)
+	if !strings.HasSuffix(path, "./storage") {
 		if _, err := os.Stat("./storage"); err != nil {
 			if os.IsNotExist(err) {
 				err = os.Mkdir("./storage", 0755)
@@ -74,7 +78,19 @@ func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	fileStat, err := os.Stat(msg.Head.Filename)
 	msg.Check(err)
 	msg.Head.Size = fileStat.Size()
-	msg.Put(conn)
+	msg.PutRequest(conn)
+}
+
+/* Handling search request */
+func handleSearchReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
+
+}
+
+/* Handling delete request */
+func handleDeleteReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
+	log.Println("Inside server delete request")
+	err := os.Remove(msg.Head.Filename)
+	msg.Check(err)
 }
 
 func main() {

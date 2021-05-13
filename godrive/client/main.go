@@ -34,12 +34,12 @@ func sendGetReq(fileName string) *message.Message {
 
 /* Creating message for search request */
 func sendSearchReq(fileName string) *message.Message {
-	return message.New(1, 0, fileName)
+	return message.New(2, 0, fileName)
 }
 
 /* Creating message for delete request */
 func sendDeleteReq(fileName string) *message.Message {
-	return message.New(1, 0, fileName)
+	return message.New(3, 0, fileName)
 }
 
 func main() {
