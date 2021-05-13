@@ -18,22 +18,15 @@ var handlers = map[message.MessageType]RequestHandler{
 	message.RetrievalRequest: handleGetReq,
 }
 
-/* Check error */
-func check(e error) {
-	if e != nil {
-		log.Fatalln(e.Error())
-	}
-}
-
 /* Handling connections from client */
 func handleConnection(conn net.Conn) {
-	log.Println("Inside handle connection")
+	log.Println("handling connection...")
 	defer conn.Close()
 	bconn := bufio.NewReader(conn)
 	decoder := gob.NewDecoder(bconn)
 	msg := &message.Message{}
 	decoder.Decode(msg)
-	changeDirectory()
+	changeDirectory(msg)
 
 	log.Printf("Filename: %s", msg.Head.Filename)
 	log.Printf("Type: %d", msg.Head.Type)
@@ -49,19 +42,19 @@ func handleConnection(conn net.Conn) {
 }
 
 /* Change directory to storage */
-func changeDirectory() {
+func changeDirectory(msg *message.Message) {
 	path, err := os.Getwd()
-	check(err)
+	msg.Check(err)
 	if strings.HasSuffix(path, "./storage") {
 		if _, err := os.Stat("./storage"); err != nil {
 			if os.IsNotExist(err) {
-				err2 := os.Mkdir("./storage", 0755)
-				check(err2)
+				err = os.Mkdir("./storage", 0755)
+				msg.Check(err)
 			}
 		}
 		os.Chdir("./storage")
 		newDir, err := os.Getwd()
-		check(err)
+		msg.Check(err)
 		log.Printf("New current Working Directory: %s\n", newDir)
 	}
 }
@@ -69,17 +62,17 @@ func changeDirectory() {
 /* Handling put request */
 func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-	check(err)
+	msg.Check(err)
 	log.Printf("SERVER -> Header size: %d\n", msg.Head.Size)
 	bytes, err := io.CopyN(file, bconn, msg.Head.Size)
-	check(err)
+	msg.Check(err)
 	log.Printf("SERVER -> New file size: %d\n", bytes)
 }
 
 /* Handling get request */
 func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	fileStat, err := os.Stat(msg.Head.Filename)
-	check(err)
+	msg.Check(err)
 	msg.Head.Size = fileStat.Size()
 	msg.Put(conn)
 }
@@ -93,7 +86,6 @@ func main() {
 
 	for {
 		if conn, err := listener.Accept(); err == nil {
-			log.Println("handling connection...")
 			go handleConnection(conn)
 		}
 	}

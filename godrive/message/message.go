@@ -55,10 +55,10 @@ func (m *Message) Send(conn net.Conn) error {
 	var err error
 	if m.Head.Type == 0 {
 		err = m.Put(conn)
-		check(err)
+		m.Check(err)
 	} else if m.Head.Type == 1 {
 		err = m.GetRequest(conn)
-		check(err)
+		m.Check(err)
 	}
 	return err
 }
@@ -67,22 +67,15 @@ func (m *Message) Send(conn net.Conn) error {
 func (m *Message) Put(conn net.Conn) error {
 
 	file, err := os.OpenFile("test.txt", os.O_RDONLY, 0666)
-	//	file, err := os.OpenFile(m.Head.Filename, os.O_RDONLY, 0666)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
+	m.Check(err)
 
 	bconn := bufio.NewWriter(conn)
 	encoder := gob.NewEncoder(bconn)
-	err2 := encoder.Encode(m)
-	if err2 != nil {
-		log.Fatalln(err2.Error())
-	}
+	err = encoder.Encode(m)
+	m.Check(err)
 
 	sz, err := io.Copy(bconn, file)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
+	m.Check(err)
 	log.Printf("Storing File size: %d", sz)
 
 	bconn.Flush()
@@ -94,27 +87,28 @@ func (m *Message) GetRequest(conn net.Conn) error {
 	bconn := bufio.NewWriter(conn)
 	encoder := gob.NewEncoder(bconn)
 	err := encoder.Encode(m)
-	check(err)
+	m.Check(err)
 
 	bconn.Flush()
 
 	cconn := bufio.NewReader(conn)
 	decoder := gob.NewDecoder(cconn)
 	err = decoder.Decode(m)
-	check(err)
+	m.Check(err)
 
 	file, err := os.OpenFile(m.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-	check(err)
+	m.Check(err)
+
 	log.Printf("MSG GetRequest -> Header size: %d\n", m.Head.Size)
 	bytes, err := io.CopyN(file, cconn, m.Head.Size)
-	check(err)
+	m.Check(err)
 
 	log.Printf("MSG GetRequest -> New file size: %d\n", bytes)
 	return err
 }
 
 /* Check error */
-func check(e error) {
+func (m *Message) Check(e error) {
 	if e != nil {
 		log.Fatalln(e.Error())
 	}

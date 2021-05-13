@@ -19,7 +19,9 @@ var msgRequester = map[string]SendRequest{
 /* Creating message for put request */
 func sendPutReq(fileName string) *message.Message {
 	fileStat, err := os.Stat(fileName)
-	check(err)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 	fileSize := fileStat.Size()
 	log.Printf("Sending File Size: %d\n", fileSize)
 	return message.New(0, fileSize, fileName)
@@ -60,11 +62,4 @@ func main() {
 	}
 	msg.Print()
 	msg.Send(conn)
-}
-
-/* Check error */
-func check(e error) {
-	if e != nil {
-		log.Fatalln(e.Error())
-	}
 }
