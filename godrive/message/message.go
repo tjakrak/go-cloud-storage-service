@@ -53,7 +53,6 @@ func (m *Message) Print() {
 /* Sending connection based on request type */
 func (m *Message) Send(conn net.Conn) error {
 	var err error
-	fmt.Printf("MSGTYPE: %d\n", m.Head.Type)
 	if m.Head.Type == 0 {
 		err = m.Put(conn)
 		check(err)
@@ -94,17 +93,15 @@ func (m *Message) Put(conn net.Conn) error {
 func (m *Message) GetRequest(conn net.Conn) error {
 	bconn := bufio.NewWriter(conn)
 	encoder := gob.NewEncoder(bconn)
-	err2 := encoder.Encode(m)
-	if err2 != nil {
-		log.Fatalln(err2.Error())
-	}
+	err := encoder.Encode(m)
+	check(err)
 
 	bconn.Flush()
 
 	cconn := bufio.NewReader(conn)
 	decoder := gob.NewDecoder(cconn)
-	err3 := decoder.Decode(m)
-	check(err3)
+	err = decoder.Decode(m)
+	check(err)
 
 	file, err := os.OpenFile(m.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	check(err)
@@ -113,7 +110,7 @@ func (m *Message) GetRequest(conn net.Conn) error {
 	check(err)
 
 	log.Printf("MSG GetRequest -> New file size: %d\n", bytes)
-	return err2
+	return err
 }
 
 /* Check error */
