@@ -53,6 +53,7 @@ func (m *Message) Print() {
 /* Sending connection based on request type */
 func (m *Message) Send(conn net.Conn) error {
 	var err error
+	fmt.Printf("MSGTYPE: %d\n", m.Head.Type)
 	if m.Head.Type == 0 {
 		err = m.Put(conn)
 		check(err)
@@ -65,7 +66,9 @@ func (m *Message) Send(conn net.Conn) error {
 
 /* PutRequest storing file */
 func (m *Message) Put(conn net.Conn) error {
-	file, err := os.OpenFile(m.Head.Filename, os.O_RDONLY, 0666)
+
+	file, err := os.OpenFile("test.txt", os.O_RDONLY, 0666)
+	//	file, err := os.OpenFile(m.Head.Filename, os.O_RDONLY, 0666)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
