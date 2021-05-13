@@ -27,7 +27,7 @@ func main() {
 	defer conn.Close()
 	var msg *message.Message
 
-    fmt.Printf("userInput[2]")
+    //fmt.Printf("userInput[2]")
 	// figure out put or get userInput[2]
 	if userInput[2] == "put" {
 	    fileStat, err := os.Stat(userInput[3])
@@ -38,9 +38,10 @@ func main() {
         fileSize := fileStat.Size()
         log.Printf("File Size: %d\n", fileSize)
 		msg = message.New(0, fileSize, userInput[3]) //use os.stat
+        msg.Send(conn)
 	} else if userInput[2] == "get" {
 		msg = message.New(1, 0, userInput[3])
-		// msg.Get(conn)
+		//msg.Get2(conn)
 	} else if userInput[2] == "search" {
 		msg = message.New(2, 0, userInput[3])
 	} else if userInput[2] == "delete" {
@@ -56,7 +57,7 @@ func main() {
 	// msg := message.New(message.StorageRequest, 300, userInput[3])
 	// fmt.Printf("%T\n", msg)
 	msg.Print()
-	msg.Send(conn) // pass in our connection
+	//msg.Send(conn) // pass in our connection
 
 	// move to the constructor open the file
 	// file, err := os.OpenFile("test.txt", os.O_RDONLY, 0666)
