@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -71,6 +72,8 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	bytes, err := io.CopyN(file, bconn, msg.Head.Size)
 	msg.Check(err)
 	log.Printf("SERVER -> New file size: %d\n", bytes)
+	note := "File " + msg.Head.Filename + " is stored"
+	sendMessage(note, conn)
 }
 
 /* Handling get request */
@@ -79,25 +82,57 @@ func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	msg.Check(err)
 	msg.Head.Size = fileStat.Size()
 	msg.PutRequest(conn)
+	note := msg.Head.Filename + " is sent"
+	sendMessage(note, conn)
 }
 
 /* Handling search request */
 func handleSearchReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	path := changeDirectory(msg)
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		log.Fatal(err)
+	if msg.Head.Filename == "" {
+		files, err := ioutil.ReadDir(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, f := range files {
+			fmt.Println(f.Name())
+		}
+	} else {
+		findFile(path, msg.Head.Filename)
 	}
-	for _, f := range files {
-		fmt.Println(f.Name())
+}
+
+func findFile(targetDir string, search string) {
+	matches, err := filepath.Glob(targetDir + search)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if len(matches) != 0 {
+		fmt.Println(matches)
 	}
 }
 
 /* Handling delete request */
 func handleDeleteReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
-	err := os.Remove(msg.Head.Filename)
-	msg.Check(err)
-	log.Printf("Deleted file: %s", msg.Head.Filename)
+	path := changeDirectory(msg)
+	path += "/" + msg.Head.Filename
+	var note string
+	log.Printf("DEL -> Current directory: %s", path)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		note = "File doesn't exist"
+	} else {
+		err := os.Remove(msg.Head.Filename)
+		msg.Check(err)
+		note = msg.Head.Filename + " is deleted"
+	}
+	fmt.Println(note)
+	sendMessage(note, conn)
+}
+
+/* Sending notification message to client */
+func sendMessage(note string, conn net.Conn) {
+	notification := message.Message{Body: note}
+	conn.Write([]byte(notification.Body))
 }
 
 func main() {

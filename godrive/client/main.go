@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"godrive/message"
 	"log"
 	"net"
@@ -42,6 +43,20 @@ func sendDeleteReq(fileName string) *message.Message {
 	return message.New(3, 0, fileName)
 }
 
+func receiveNotification(conn net.Conn) {
+	message := make([]byte, 128)
+	n, err := conn.Read(message)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	log.Printf("Read %d bytes\n", n)
+
+	if len(message) > 0 {
+		msgStr := string(message)
+		fmt.Println(msgStr)
+	}
+}
+
 func main() {
 	userInput := os.Args
 	conn, err := net.Dial("tcp", userInput[1])
@@ -62,4 +77,5 @@ func main() {
 	}
 	msg.Print()
 	msg.Send(conn)
+	receiveNotification(conn)
 }

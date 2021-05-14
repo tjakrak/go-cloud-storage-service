@@ -34,13 +34,7 @@ type Message struct {
 /* Constructor */
 func New(ty MessageType, size int64, fileName string) *Message { // return a pointer to a message, without pointer it's extra copy
 	head := MessageHeader{size, ty, fileName}
-	var request string
-	if head.Type == 0 {
-		request = "put"
-	} else if head.Type == 1 {
-		request = "get"
-	}
-	msg := Message{head, head.Filename, request}
+	msg := Message{head, head.Filename, "GoDrive"}
 	return &msg
 }
 
@@ -54,17 +48,14 @@ func (m *Message) Send(conn net.Conn) error {
 	var err error
 	if m.Head.Type == 0 {
 		err = m.PutRequest(conn)
-		m.Check(err)
 	} else if m.Head.Type == 1 {
 		err = m.GetRequest(conn)
-		m.Check(err)
 	} else if m.Head.Type == 2 {
 		err = m.SearchRequest(conn)
-		m.Check(err)
 	} else if m.Head.Type == 3 {
 		err = m.DeleteRequest(conn)
-		m.Check(err)
 	}
+	m.Check(err)
 	return err
 }
 
@@ -72,6 +63,7 @@ func (m *Message) Send(conn net.Conn) error {
 func (m *Message) DeleteRequest(conn net.Conn) error {
 	err := m.setEncoder(conn)
 	m.Check(err)
+
 	return err
 }
 
@@ -88,7 +80,6 @@ func (m *Message) setEncoder(conn net.Conn) error {
 	encoder := gob.NewEncoder(bconn)
 	err := encoder.Encode(m)
 	m.Check(err)
-
 	bconn.Flush()
 	return err
 }
