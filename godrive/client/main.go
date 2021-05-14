@@ -34,7 +34,7 @@ func sendGetReq(fileName string) *message.Message {
 
 /* Creating message for search request */
 func sendSearchReq(fileName string) *message.Message {
-	return message.New(2, 0, fileName)
+    return message.New(2, 0, fileName)
 }
 
 /* Creating message for delete request */
@@ -55,7 +55,11 @@ func main() {
 	var msg *message.Message
 	request := msgRequester[userInput[2]]
 	if request != nil {
-		msg = request(userInput[3])
+        if len(userInput) >= 4 {
+		    msg = request(userInput[3])
+        } else {
+            msg = request("")
+        }
 	} else {
 		log.Println("No request: ", request)
 		return

@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"strings"
+    "regexp"
 )
 
 type RequestHandler func(net.Conn, *bufio.Reader, *message.Message)
@@ -88,8 +89,12 @@ func handleSearchReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	if err != nil {
 		log.Fatal(err)
 	}
+    r, _ := regexp.Compile(".*?" + msg.Head.Filename  + ".*")
 	for _, f := range files {
-		fmt.Println(f.Name())
+        //log.Printf("type of filename: %T %s", f.Name(), r)
+        if r.MatchString(f.Name()) {
+		    fmt.Println(f.Name())
+        }
 	}
 }
 
@@ -101,7 +106,7 @@ func handleDeleteReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 }
 
 func main() {
-	listener, err := net.Listen("tcp", "192.168.122.212:7777")
+	listener, err := net.Listen("tcp", "192.168.122.215:7070")
 	if err != nil {
 		log.Fatalln(err.Error())
 		return
