@@ -76,10 +76,11 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 		msg.Check(err)
 		log.Printf("SERVER PUT -> Header size: %d\n", msg.Head.Size)
-		hashFile(file)
 		bytes, err := io.CopyN(file, bconn, msg.Head.Size)
 		msg.Check(err)
 		log.Printf("SERVER PUT -> New file size: %d\n", bytes)
+		file.Seek(0, 0)
+		hashFile(file, msg.Head.Filename)
 		note = "File " + msg.Head.Filename + " is stored"
 		defer file.Close()
 	} else {
@@ -147,24 +148,23 @@ func sendMessage(note string, conn net.Conn) {
 }
 
 /* Get the md5sum of the file */
-func hashFile(file *os.File) {
+func hashFile(file *os.File, fileName string) {
 	hash := md5.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		log.Fatal(err)
 		return
 	}
 	log.Printf("Hash: %x\n", hash.Sum(nil))
-	// openFile(string(hash.Sum(nil)))
-	writeToFile(hex.EncodeToString(hash.Sum(nil)))
+	fileSplit := strings.Split(fileName, ".")
+	fileHash := fileSplit[0] + "hash.txt"
+	writeToFile(hex.EncodeToString(hash.Sum(nil)), fileHash)
 }
 
-/* Write to hash.txt */
-func writeToFile(hash string) {
-	openFile("hash.txt")
+/* Write to filehash.txt */
+func writeToFile(hash string, file string) {
+	openFile(file)
 	hashData := []byte(hash)
-
-	// the WriteFile method returns an error if unsuccessful
-	err := ioutil.WriteFile("hash.txt", hashData, 0777)
+	err := ioutil.WriteFile(file, hashData, 0777)
 	if err != nil {
 		log.Fatalf("failed writing to file: %s", err)
 	}
@@ -174,7 +174,7 @@ func writeToFile(hash string) {
 func openFile(file string) {
 	f, err := os.OpenFile(file, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	if err != nil {
-		log.Fatalln(err.Error())
+		log.Fatalf("failed opening file: %s", err.Error())
 		return
 	}
 	defer f.Close()
