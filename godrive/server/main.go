@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"crypto/md5"
 	"encoding/gob"
+	"encoding/hex"
 	"fmt"
 	"godrive/message"
 	"io"
@@ -74,10 +76,12 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 		msg.Check(err)
 		log.Printf("SERVER PUT -> Header size: %d\n", msg.Head.Size)
+		hashFile(file)
 		bytes, err := io.CopyN(file, bconn, msg.Head.Size)
 		msg.Check(err)
 		log.Printf("SERVER PUT -> New file size: %d\n", bytes)
 		note = "File " + msg.Head.Filename + " is stored"
+		defer file.Close()
 	} else {
 		note = "File already exists"
 	}
@@ -140,6 +144,40 @@ func handleDeleteReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 /* Sending notification message to client */
 func sendMessage(note string, conn net.Conn) {
 	conn.Write([]byte(note))
+}
+
+/* Get the md5sum of the file */
+func hashFile(file *os.File) {
+	hash := md5.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		log.Fatal(err)
+		return
+	}
+	log.Printf("Hash: %x\n", hash.Sum(nil))
+	// openFile(string(hash.Sum(nil)))
+	writeToFile(hex.EncodeToString(hash.Sum(nil)))
+}
+
+/* Write to hash.txt */
+func writeToFile(hash string) {
+	openFile("hash.txt")
+	hashData := []byte(hash)
+
+	// the WriteFile method returns an error if unsuccessful
+	err := ioutil.WriteFile("hash.txt", hashData, 0777)
+	if err != nil {
+		log.Fatalf("failed writing to file: %s", err)
+	}
+}
+
+/* Open file */
+func openFile(file string) {
+	f, err := os.OpenFile(file, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+	if err != nil {
+		log.Fatalln(err.Error())
+		return
+	}
+	defer f.Close()
 }
 
 func main() {
