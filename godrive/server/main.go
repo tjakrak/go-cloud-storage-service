@@ -10,7 +10,7 @@ import (
 	"log"
 	"net"
 	"os"
-	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -66,13 +66,21 @@ func changeDirectory(msg *message.Message) string {
 
 /* Handling put request */
 func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
-	file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-	msg.Check(err)
-	log.Printf("SERVER -> Header size: %d\n", msg.Head.Size)
-	bytes, err := io.CopyN(file, bconn, msg.Head.Size)
-	msg.Check(err)
-	log.Printf("SERVER -> New file size: %d\n", bytes)
-	note := "File " + msg.Head.Filename + " is stored"
+	path := changeDirectory(msg)
+	path += "/" + msg.Head.Filename
+	var note string
+	log.Printf("PUT -> Current directory: %s", path)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+		msg.Check(err)
+		log.Printf("SERVER PUT -> Header size: %d\n", msg.Head.Size)
+		bytes, err := io.CopyN(file, bconn, msg.Head.Size)
+		msg.Check(err)
+		log.Printf("SERVER PUT -> New file size: %d\n", bytes)
+		note = "File " + msg.Head.Filename + " is stored"
+	} else {
+		note = "File already exists"
+	}
 	sendMessage(note, conn)
 }
 
@@ -89,27 +97,18 @@ func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 /* Handling search request */
 func handleSearchReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	path := changeDirectory(msg)
-	if msg.Head.Filename == "" {
-		files, err := ioutil.ReadDir(path)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, f := range files {
-			fmt.Println(f.Name())
-		}
-	} else {
-		findFile(path, msg.Head.Filename)
-	}
-}
+	files, err := ioutil.ReadDir(path)
+	msg.Check(err)
 
-func findFile(targetDir string, search string) {
-	matches, err := filepath.Glob(targetDir + search)
-	if err != nil {
-		fmt.Println(err)
+	var returnFiles string
+	r, _ := regexp.Compile(".*?" + msg.Head.Filename + ".*")
+	for _, f := range files {
+		if r.MatchString(f.Name()) {
+			fmt.Println(f.Name())
+			returnFiles += f.Name() + "\n"
+		}
 	}
-	if len(matches) != 0 {
-		fmt.Println(matches)
-	}
+	sendMessage(returnFiles, conn)
 }
 
 /* Handling delete request */

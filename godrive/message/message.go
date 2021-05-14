@@ -86,7 +86,6 @@ func (m *Message) setEncoder(conn net.Conn) error {
 
 /* PutRequest storing file */
 func (m *Message) PutRequest(conn net.Conn) error {
-
 	file, err := os.OpenFile("test.txt", os.O_RDONLY, 0666)
 	m.Check(err)
 

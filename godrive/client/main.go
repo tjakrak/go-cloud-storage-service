@@ -43,6 +43,7 @@ func sendDeleteReq(fileName string) *message.Message {
 	return message.New(3, 0, fileName)
 }
 
+/* Getting notification message from server */
 func receiveNotification(conn net.Conn) {
 	message := make([]byte, 128)
 	n, err := conn.Read(message)
@@ -70,7 +71,11 @@ func main() {
 	var msg *message.Message
 	request := msgRequester[userInput[2]]
 	if request != nil {
-		msg = request(userInput[3])
+		if len(userInput) == 4 {
+			msg = request(userInput[3])
+		} else {
+			msg = request("")
+		}
 	} else {
 		log.Println("No request: ", request)
 		return
