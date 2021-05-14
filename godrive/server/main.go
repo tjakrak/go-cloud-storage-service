@@ -89,9 +89,10 @@ func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	fileStat, err := os.Stat(msg.Head.Filename)
 	msg.Check(err)
 	msg.Head.Size = fileStat.Size()
-	msg.PutRequest(conn)
 	note := msg.Head.Filename + " is sent"
-	sendMessage(note, conn)
+	msg.Body = note
+	msg.PutRequest(conn)
+	// sendMessage(note, conn)
 }
 
 /* Handling search request */
@@ -130,12 +131,11 @@ func handleDeleteReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 
 /* Sending notification message to client */
 func sendMessage(note string, conn net.Conn) {
-	notification := message.Message{Body: note}
-	conn.Write([]byte(notification.Body))
+	conn.Write([]byte(note))
 }
 
 func main() {
-	listener, err := net.Listen("tcp", "192.168.122.215:7070")
+	listener, err := net.Listen("tcp", "192.168.122.212:7777")
 	if err != nil {
 		log.Fatalln(err.Error())
 		return

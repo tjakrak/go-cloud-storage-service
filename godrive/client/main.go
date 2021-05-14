@@ -46,9 +46,9 @@ func sendDeleteReq(fileName string) *message.Message {
 /* Getting notification message from server */
 func receiveNotification(conn net.Conn) {
 	message := make([]byte, 128)
-	n, err := conn.Read(message)
-	if err != nil {
-		log.Println(err.Error())
+	n, _ := conn.Read(message)
+	if n == 0 {
+		return
 	}
 	log.Printf("Read %d bytes\n", n)
 

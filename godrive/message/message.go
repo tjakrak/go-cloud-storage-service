@@ -63,7 +63,6 @@ func (m *Message) Send(conn net.Conn) error {
 func (m *Message) DeleteRequest(conn net.Conn) error {
 	err := m.setEncoder(conn)
 	m.Check(err)
-
 	return err
 }
 
@@ -86,7 +85,7 @@ func (m *Message) setEncoder(conn net.Conn) error {
 
 /* PutRequest storing file */
 func (m *Message) PutRequest(conn net.Conn) error {
-	file, err := os.OpenFile("test.txt", os.O_RDONLY, 0666)
+	file, err := os.OpenFile(m.Head.Filename, os.O_RDONLY, 0666)
 	m.Check(err)
 
 	bconn := bufio.NewWriter(conn)
@@ -96,7 +95,7 @@ func (m *Message) PutRequest(conn net.Conn) error {
 
 	sz, err := io.Copy(bconn, file)
 	m.Check(err)
-	log.Printf("Storing File size: %d", sz)
+	log.Printf("Storing file size: %d", sz)
 
 	bconn.Flush()
 	return err
@@ -105,7 +104,6 @@ func (m *Message) PutRequest(conn net.Conn) error {
 /* GetRequest to retrieve file */
 func (m *Message) GetRequest(conn net.Conn) error {
 	m.setEncoder(conn)
-
 	cconn := bufio.NewReader(conn)
 	decoder := gob.NewDecoder(cconn)
 	err := decoder.Decode(m)
@@ -119,6 +117,7 @@ func (m *Message) GetRequest(conn net.Conn) error {
 	m.Check(err)
 
 	log.Printf("MSG GetRequest -> New file size: %d\n", bytes)
+	fmt.Println(m.Body)
 	return err
 }
 
