@@ -107,7 +107,10 @@ func (m *Message) GetRequest(conn net.Conn) error {
 	cconn := bufio.NewReader(conn)
 	decoder := gob.NewDecoder(cconn)
 	err := decoder.Decode(m)
-	m.Check(err)
+	if err != nil {
+		fmt.Println("File doesn't exist")
+		return err
+	}
 
 	file, err := os.OpenFile(m.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	m.Check(err)

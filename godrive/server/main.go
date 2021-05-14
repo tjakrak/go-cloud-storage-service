@@ -69,7 +69,7 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	path := changeDirectory(msg)
 	path += "/" + msg.Head.Filename
 	var note string
-	log.Printf("PUT -> Current directory: %s", path)
+	log.Printf("SERVER PUT -> Path: %s", path)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 		msg.Check(err)
@@ -86,13 +86,21 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 
 /* Handling get request */
 func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
-	fileStat, err := os.Stat(msg.Head.Filename)
-	msg.Check(err)
-	msg.Head.Size = fileStat.Size()
-	note := msg.Head.Filename + " is sent"
-	msg.Body = note
-	msg.PutRequest(conn)
-	// sendMessage(note, conn)
+	path := changeDirectory(msg)
+	path += "/" + msg.Head.Filename
+	log.Printf("SERVER GET -> Path: %s", path)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		log.Println("File doesn't exist")
+		msg.Body = "File doesn't exist"
+		return
+	} else {
+		fileStat, err := os.Stat(msg.Head.Filename)
+		msg.Check(err)
+		msg.Head.Size = fileStat.Size()
+		note := msg.Head.Filename + " is received"
+		msg.Body = note
+		msg.PutRequest(conn)
+	}
 }
 
 /* Handling search request */
@@ -117,7 +125,7 @@ func handleDeleteReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	path := changeDirectory(msg)
 	path += "/" + msg.Head.Filename
 	var note string
-	log.Printf("DEL -> Current directory: %s", path)
+	log.Printf("SERVER DEL -> Path: %s", path)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		note = "File doesn't exist"
 	} else {
