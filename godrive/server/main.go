@@ -10,8 +10,8 @@ import (
 	"log"
 	"net"
 	"os"
+	"regexp"
 	"strings"
-    "regexp"
 )
 
 type RequestHandler func(net.Conn, *bufio.Reader, *message.Message)
@@ -66,12 +66,22 @@ func changeDirectory(msg *message.Message) string {
 
 /* Handling put request */
 func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
-	file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-	msg.Check(err)
-	log.Printf("SERVER -> Header size: %d\n", msg.Head.Size)
-	bytes, err := io.CopyN(file, bconn, msg.Head.Size)
-	msg.Check(err)
-	log.Printf("SERVER -> New file size: %d\n", bytes)
+	path := changeDirectory(msg)
+	path += "/" + msg.Head.Filename
+	var note string
+	log.Printf("PUT -> Current directory: %s", path)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		file, err := os.OpenFile(msg.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+		msg.Check(err)
+		log.Printf("SERVER PUT -> Header size: %d\n", msg.Head.Size)
+		bytes, err := io.CopyN(file, bconn, msg.Head.Size)
+		msg.Check(err)
+		log.Printf("SERVER PUT -> New file size: %d\n", bytes)
+		note = "File " + msg.Head.Filename + " is stored"
+	} else {
+		note = "File already exists"
+	}
+	sendMessage(note, conn)
 }
 
 /* Handling get request */
@@ -80,29 +90,48 @@ func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	msg.Check(err)
 	msg.Head.Size = fileStat.Size()
 	msg.PutRequest(conn)
+	note := msg.Head.Filename + " is sent"
+	sendMessage(note, conn)
 }
 
 /* Handling search request */
 func handleSearchReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	path := changeDirectory(msg)
 	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-    r, _ := regexp.Compile(".*?" + msg.Head.Filename  + ".*")
+	msg.Check(err)
+
+	var returnFiles string
+	r, _ := regexp.Compile(".*?" + msg.Head.Filename + ".*")
 	for _, f := range files {
-        //log.Printf("type of filename: %T %s", f.Name(), r)
-        if r.MatchString(f.Name()) {
-		    fmt.Println(f.Name())
-        }
+		if r.MatchString(f.Name()) {
+			fmt.Println(f.Name())
+			returnFiles += f.Name() + "\n"
+		}
 	}
+	sendMessage(returnFiles, conn)
 }
 
 /* Handling delete request */
 func handleDeleteReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
-	err := os.Remove(msg.Head.Filename)
-	msg.Check(err)
-	log.Printf("Deleted file: %s", msg.Head.Filename)
+	path := changeDirectory(msg)
+	path += "/" + msg.Head.Filename
+	var note string
+	log.Printf("DEL -> Current directory: %s", path)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		note = "File doesn't exist"
+	} else {
+		err := os.Remove(msg.Head.Filename)
+		msg.Check(err)
+		note = msg.Head.Filename + " is deleted"
+	}
+	fmt.Println(note)
+	sendMessage(note, conn)
+}
+
+/* Sending notification message to client */
+func sendMessage(note string, conn net.Conn) {
+	notification := message.Message{Body: note}
+	conn.Write([]byte(notification.Body))
 }
 
 func main() {

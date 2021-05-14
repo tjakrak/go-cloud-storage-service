@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"godrive/message"
 	"log"
 	"net"
@@ -34,12 +35,27 @@ func sendGetReq(fileName string) *message.Message {
 
 /* Creating message for search request */
 func sendSearchReq(fileName string) *message.Message {
-    return message.New(2, 0, fileName)
+	return message.New(2, 0, fileName)
 }
 
 /* Creating message for delete request */
 func sendDeleteReq(fileName string) *message.Message {
 	return message.New(3, 0, fileName)
+}
+
+/* Getting notification message from server */
+func receiveNotification(conn net.Conn) {
+	message := make([]byte, 128)
+	n, err := conn.Read(message)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	log.Printf("Read %d bytes\n", n)
+
+	if len(message) > 0 {
+		msgStr := string(message)
+		fmt.Println(msgStr)
+	}
 }
 
 func main() {
@@ -55,15 +71,16 @@ func main() {
 	var msg *message.Message
 	request := msgRequester[userInput[2]]
 	if request != nil {
-        if len(userInput) >= 4 {
-		    msg = request(userInput[3])
-        } else {
-            msg = request("")
-        }
+		if len(userInput) == 4 {
+			msg = request(userInput[3])
+		} else {
+			msg = request("")
+		}
 	} else {
 		log.Println("No request: ", request)
 		return
 	}
 	msg.Print()
 	msg.Send(conn)
+	receiveNotification(conn)
 }
