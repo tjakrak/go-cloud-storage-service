@@ -80,7 +80,7 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		msg.Check(err)
 		log.Printf("SERVER PUT -> New file size: %d\n", bytes)
 		file.Seek(0, 0)
-		hashFile(file, msg.Head.Filename)
+		writeHashFile(file, msg.Head.Filename)
 		note = "File " + msg.Head.Filename + " is stored"
 		defer file.Close()
 	} else {
@@ -91,6 +91,7 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 
 /* Handling get request */
 func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
+	log.Printf("SERVER GET -> Filename: %s", msg.Head.Filename)
 	path := changeDirectory(msg)
 	path += "/" + msg.Head.Filename
 	log.Printf("SERVER GET -> Path: %s", path)
@@ -99,12 +100,17 @@ func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		msg.Body = "File doesn't exist"
 		return
 	} else {
-		fileStat, err := os.Stat(msg.Head.Filename)
-		msg.Check(err)
-		msg.Head.Size = fileStat.Size()
-		note := msg.Head.Filename + " is received"
-		msg.Body = note
-		msg.PutRequest(conn)
+		if checkMatchWithHash(msg.Head.Filename) {
+			fileStat, err := os.Stat(msg.Head.Filename)
+			msg.Check(err)
+			msg.Head.Size = fileStat.Size()
+			note := msg.Head.Filename + " is downloaded"
+			msg.Body = note
+			msg.PutRequest(conn)
+		} else {
+			msg.Body = "File is corrupted"
+			return
+		}
 	}
 }
 
@@ -148,19 +154,48 @@ func sendMessage(note string, conn net.Conn) {
 }
 
 /* Get the md5sum of the file */
-func hashFile(file *os.File, fileName string) {
+func hashFile(file *os.File) string {
 	hash := md5.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		log.Fatal(err)
-		return
 	}
 	log.Printf("Hash: %x\n", hash.Sum(nil))
-	fileSplit := strings.Split(fileName, ".")
-	fileHash := fileSplit[0] + "hash.txt"
-	writeToFile(hex.EncodeToString(hash.Sum(nil)), fileHash)
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 /* Write to filehash.txt */
+func writeHashFile(file *os.File, fileName string) {
+	hash := hashFile(file)
+	fileHash := getHashFileName(fileName)
+	writeToFile(hash, fileHash)
+}
+
+/* Add hash.txt to the end of file */
+func getHashFileName(fileName string) string {
+	fileSplit := strings.Split(fileName, ".")
+	return fileSplit[0] + "hash.txt"
+}
+
+/* Check if the hashes matched */
+func checkMatchWithHash(fileName string) bool {
+	fileHash := getHashFileName(fileName)
+	storedHash, err := ioutil.ReadFile(fileHash)
+	if err != nil {
+		log.Fatalf("failed reading from file: %s", err)
+	}
+	file, err := os.Open("file.go")
+	if err != nil {
+		log.Fatal(err)
+	}
+	receivedHash := hashFile(file)
+	if strings.Compare(string(storedHash), receivedHash) == 0 {
+		return true
+	} else {
+		return false
+	}
+}
+
+/* Write to file */
 func writeToFile(hash string, file string) {
 	openFile(file)
 	hashData := []byte(hash)
@@ -186,7 +221,6 @@ func main() {
 		log.Fatalln(err.Error())
 		return
 	}
-
 	for {
 		if conn, err := listener.Accept(); err == nil {
 			go handleConnection(conn)
