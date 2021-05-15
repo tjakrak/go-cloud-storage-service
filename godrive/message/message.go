@@ -109,7 +109,7 @@ func (m *Message) GetRequest(conn net.Conn) error {
 	err := decoder.Decode(m)
 	fmt.Println(m.Body)
 	if err != nil {
-		fmt.Println("Download failed. File is corrupted or not found")
+		fmt.Println("Download failed. File is corrupted or not found.")
 		return err
 	}
 

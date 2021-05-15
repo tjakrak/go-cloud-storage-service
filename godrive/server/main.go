@@ -171,10 +171,9 @@ func writeHashFile(file *os.File, fileName string) {
 	writeToFile(hash, fileHash)
 }
 
-/* Add hash.txt to the end of file */
+/* Add checksum to the end of file */
 func getHashFileName(fileName string) string {
-	fileSplit := strings.Split(fileName, ".")
-	return fileSplit[0] + "hash.txt"
+	return fileName + ".checksum"
 }
 
 /* Check if the hashes matched */
