@@ -107,8 +107,9 @@ func (m *Message) GetRequest(conn net.Conn) error {
 	cconn := bufio.NewReader(conn)
 	decoder := gob.NewDecoder(cconn)
 	err := decoder.Decode(m)
+	fmt.Println(m.Body)
 	if err != nil {
-		fmt.Println("File doesn't exist")
+		fmt.Println("Download failed. File is corrupted or not found")
 		return err
 	}
 

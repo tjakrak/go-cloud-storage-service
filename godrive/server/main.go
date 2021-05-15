@@ -96,8 +96,8 @@ func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	path += "/" + msg.Head.Filename
 	log.Printf("SERVER GET -> Path: %s", path)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		log.Println("File doesn't exist")
 		msg.Body = "File doesn't exist"
+		log.Println(msg.Body)
 		return
 	} else {
 		if checkMatchWithHash(msg.Head.Filename) {
@@ -109,6 +109,7 @@ func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 			msg.PutRequest(conn)
 		} else {
 			msg.Body = "File is corrupted"
+			log.Println(msg.Body)
 			return
 		}
 	}
@@ -183,14 +184,18 @@ func checkMatchWithHash(fileName string) bool {
 	if err != nil {
 		log.Fatalf("failed reading from file: %s", err)
 	}
-	file, err := os.Open("file.go")
+	file, err := os.Open(fileName)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed opening from file: %s", err)
 	}
 	receivedHash := hashFile(file)
+	defer file.Close()
+	log.Printf("Stored hash : %s\n", string(storedHash))
+	log.Printf("Received hash : %s\n", receivedHash)
 	if strings.Compare(string(storedHash), receivedHash) == 0 {
 		return true
 	} else {
+		log.Println("Hashes don't match")
 		return false
 	}
 }
