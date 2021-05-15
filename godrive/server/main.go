@@ -84,7 +84,7 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		note = "File " + msg.Head.Filename + " is stored"
 		defer file.Close()
 	} else {
-		note = "File already exists"
+		note = "File already exists. Please delete existing file first."
 	}
 	sendMessage(note, conn)
 }
