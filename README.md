@@ -7,7 +7,7 @@ See project spec here: https://www.cs.usfca.edu/~mmalensek/cs521/assignments/pro
 GoDrive is a cloud storage system similar to Dropbox or Google Drive, with resilient, replicated backend servers and a command line client application. This project uses the go standard library and socket programming.
 
 ### GoDrive Design
-TBD discuss your design and the logic behind the decisions you made
+![GoDrive](https://user-images.githubusercontent.com/60201466/118353545-9dbbb100-b51b-11eb-8a67-487c521815a8.jpg)
 
 ### How to use GoDrive
 
