@@ -76,7 +76,7 @@ There are several files included. These are:
    - <b>server/main.go</b>: The server driver that listens and responses to client requests
    - <b>client/main.go</b>: The client driver that send out message requests
    - <b>messages.go</b>: Shared put, get, delete and search message requests
-There are also directories to store shared files:
+\There are also directories to store shared files:
    - <b>storageA</b>: for the main server
    - <b>storageB</b>: for the backend server
 
