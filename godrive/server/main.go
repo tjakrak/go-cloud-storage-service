@@ -23,6 +23,8 @@ var handlers = map[message.MessageType]RequestHandler{
 	message.DeleteRequest:    handleDeleteReq,
 }
 
+var userInput []string
+
 /* Handling connections from client */
 func handleConnection(conn net.Conn) {
 	log.Println("handling connection...")
@@ -31,6 +33,19 @@ func handleConnection(conn net.Conn) {
 	decoder := gob.NewDecoder(bconn)
 	msg := &message.Message{}
 	decoder.Decode(msg)
+
+    log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
+    if msg.Head.Type != 1 && msg.Head.Type != 2 {
+        if msg.Counter != 0 {
+            msg.Counter = msg.Counter - 1
+            err := dialConnection(msg)
+            if err != nil {
+                note := "backup server failed"
+                sendMessage(note, conn)
+                return
+            }
+        }
+    }
 	changeDirectory(msg)
 	log.Printf("Filename: %s", msg.Head.Filename)
 	log.Printf("Type: %d", msg.Head.Type)
@@ -46,17 +61,34 @@ func handleConnection(conn net.Conn) {
 
 /* Change directory to storage */
 func changeDirectory(msg *message.Message) string {
+//	path, err := os.Getwd()
+//	msg.Check(err)
+//	log.Printf("Current directory: %s\n", path)
+//	if !(strings.HasSuffix(path, "/storage")) {
+//		if _, err := os.Stat("./storage"); err != nil {
+//			if os.IsNotExist(err) {
+//				err = os.Mkdir("./storage", 0755)
+//				msg.Check(err)
+//			}
+//		}
+//		os.Chdir("./storage")
+//		path, err = os.Getwd()
+//		msg.Check(err)
+//		log.Printf("New current working directory: %s\n", path)
+//	}
+//	return path
+
 	path, err := os.Getwd()
 	msg.Check(err)
 	log.Printf("Current directory: %s\n", path)
-	if !(strings.HasSuffix(path, "/storage")) {
-		if _, err := os.Stat("./storage"); err != nil {
+	if !(strings.HasSuffix(path, userInput[3])) {
+		if _, err := os.Stat(userInput[3]); err != nil {
 			if os.IsNotExist(err) {
-				err = os.Mkdir("./storage", 0755)
+				err = os.Mkdir(userInput[3], 0755)
 				msg.Check(err)
 			}
 		}
-		os.Chdir("./storage")
+		os.Chdir(userInput[3])
 		path, err = os.Getwd()
 		msg.Check(err)
 		log.Printf("New current working directory: %s\n", path)
@@ -142,8 +174,31 @@ func sendMessage(note string, conn net.Conn) {
 	conn.Write([]byte(note))
 }
 
+/* Creating a connection to a backup server */
+func dialConnection(msg *message.Message) error {
+	conn, err := net.Dial("tcp", userInput[2])
+    //conn, err := net.Dial("tcp", "192.168.122.215:7778")
+
+	if err != nil {
+		//log.Fatalln(err.Error())
+		return err
+	}
+    log.Printf("ERROR:%T", err)
+
+	defer conn.Close()
+
+	msg.Print()
+	msg.Send(conn)
+    return err
+	// receiveNotification(conn)
+}
+
 func main() {
-	listener, err := net.Listen("tcp", "192.168.122.212:7777")
+	userInput = os.Args
+    log.Printf("%s", userInput[1])
+    listener, err := net.Listen("tcp", userInput[1])
+    //listener, err := net.Listen("tcp", "localhost:7777")
+
 	if err != nil {
 		log.Fatalln(err.Error())
 		return

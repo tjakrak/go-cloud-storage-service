@@ -19,6 +19,8 @@ const (
 	DeleteRequest
 )
 
+type DialCounter int
+
 type MessageHeader struct {
 	Size     int64
 	Type     MessageType
@@ -27,14 +29,14 @@ type MessageHeader struct {
 
 type Message struct {
 	Head MessageHeader
-	Name string
+	Counter DialCounter
 	Body string
 }
 
 /* Constructor */
 func New(ty MessageType, size int64, fileName string) *Message { // return a pointer to a message, without pointer it's extra copy
 	head := MessageHeader{size, ty, fileName}
-	msg := Message{head, head.Filename, "GoDrive"}
+	msg := Message{head, 1, ""}
 	return &msg
 }
 
