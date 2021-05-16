@@ -87,7 +87,8 @@ func (m *Message) setEncoder(conn net.Conn) error {
 
 /* PutRequest storing file */
 func (m *Message) PutRequest(conn net.Conn) error {
-	file, err := os.OpenFile(m.Head.Filename, os.O_RDONLY, 0666)
+    log.Printf("FILENAME: %s", m.Head.Filename)
+    file, err := os.OpenFile(m.Head.Filename, os.O_RDONLY, 0666)
 	m.Check(err)
 
 	bconn := bufio.NewWriter(conn)

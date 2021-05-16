@@ -38,6 +38,8 @@ func handleConnection(conn net.Conn) {
     if msg.Head.Type != 1 && msg.Head.Type != 2 {
         if msg.Counter != 0 {
             msg.Counter = msg.Counter - 1
+            path, _ := os.Getwd()
+		    log.Printf("New DIAL working directory: %s\n", path)
             err := dialConnection(msg)
             if err != nil {
                 note := "backup server failed"
@@ -113,6 +115,8 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	} else {
 		note = "File already exists"
 	}
+
+    os.Chdir("..")
 	sendMessage(note, conn)
 }
 
@@ -166,6 +170,7 @@ func handleDeleteReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		note = msg.Head.Filename + " is deleted"
 	}
 	fmt.Println(note)
+    os.Chdir("..")
 	sendMessage(note, conn)
 }
 
