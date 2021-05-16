@@ -28,9 +28,9 @@ type MessageHeader struct {
 }
 
 type Message struct {
-	Head MessageHeader
+	Head    MessageHeader
 	Counter DialCounter
-	Body string
+	Body    string
 }
 
 /* Constructor */
@@ -111,7 +111,7 @@ func (m *Message) GetRequest(conn net.Conn) error {
 	decoder := gob.NewDecoder(cconn)
 	err := decoder.Decode(m)
 	if err != nil {
-		fmt.Println("File doesn't exist")
+		fmt.Println("Download failed. File is corrupted or not found.")
 		return err
 	}
 

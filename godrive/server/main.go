@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"crypto/md5"
 	"encoding/gob"
+	"encoding/hex"
 	"fmt"
 	"godrive/message"
 	"io"
@@ -34,6 +36,7 @@ func handleConnection(conn net.Conn) {
 	msg := &message.Message{}
 	decoder.Decode(msg)
 
+
     log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
     if msg.Head.Type != 1 && msg.Head.Type != 2 {
         if msg.Counter != 0 {
@@ -48,6 +51,7 @@ func handleConnection(conn net.Conn) {
             }
         }
     }
+
 	changeDirectory(msg)
 	log.Printf("Filename: %s", msg.Head.Filename)
 	log.Printf("Type: %d", msg.Head.Type)
@@ -63,23 +67,6 @@ func handleConnection(conn net.Conn) {
 
 /* Change directory to storage */
 func changeDirectory(msg *message.Message) string {
-//	path, err := os.Getwd()
-//	msg.Check(err)
-//	log.Printf("Current directory: %s\n", path)
-//	if !(strings.HasSuffix(path, "/storage")) {
-//		if _, err := os.Stat("./storage"); err != nil {
-//			if os.IsNotExist(err) {
-//				err = os.Mkdir("./storage", 0755)
-//				msg.Check(err)
-//			}
-//		}
-//		os.Chdir("./storage")
-//		path, err = os.Getwd()
-//		msg.Check(err)
-//		log.Printf("New current working directory: %s\n", path)
-//	}
-//	return path
-
 	path, err := os.Getwd()
 	msg.Check(err)
 	log.Printf("Current directory: %s\n", path)
@@ -100,6 +87,7 @@ func changeDirectory(msg *message.Message) string {
 
 /* Handling put request */
 func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
+	log.Println("Inside put request")
 	path := changeDirectory(msg)
 	path += "/" + msg.Head.Filename
 	var note string
@@ -111,9 +99,12 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		bytes, err := io.CopyN(file, bconn, msg.Head.Size)
 		msg.Check(err)
 		log.Printf("SERVER PUT -> New file size: %d\n", bytes)
+		file.Seek(0, 0)
+		writeHashFile(file, msg.Head.Filename)
 		note = "File " + msg.Head.Filename + " is stored"
+		defer file.Close()
 	} else {
-		note = "File already exists"
+		note = "File already exists. Please delete existing file first."
 	}
 
     os.Chdir("..")
@@ -122,20 +113,27 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 
 /* Handling get request */
 func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
+	log.Printf("SERVER GET -> Filename: %s", msg.Head.Filename)
 	path := changeDirectory(msg)
 	path += "/" + msg.Head.Filename
 	log.Printf("SERVER GET -> Path: %s", path)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		log.Println("File doesn't exist")
 		msg.Body = "File doesn't exist"
+		log.Println(msg.Body)
 		return
 	} else {
-		fileStat, err := os.Stat(msg.Head.Filename)
-		msg.Check(err)
-		msg.Head.Size = fileStat.Size()
-		note := msg.Head.Filename + " is received"
-		msg.Body = note
-		msg.PutRequest(conn)
+		if checkMatchWithHash(msg.Head.Filename) {
+			fileStat, err := os.Stat(msg.Head.Filename)
+			msg.Check(err)
+			msg.Head.Size = fileStat.Size()
+			note := msg.Head.Filename + " is downloaded"
+			msg.Body = note
+			msg.PutRequest(conn)
+		} else {
+			msg.Body = "File is corrupted"
+			log.Println(msg.Body)
+			return
+		}
 	}
 }
 
@@ -182,27 +180,88 @@ func sendMessage(note string, conn net.Conn) {
 /* Creating a connection to a backup server */
 func dialConnection(msg *message.Message) error {
 	conn, err := net.Dial("tcp", userInput[2])
-    //conn, err := net.Dial("tcp", "192.168.122.215:7778")
 
 	if err != nil {
-		//log.Fatalln(err.Error())
 		return err
 	}
-    log.Printf("ERROR:%T", err)
+	log.Printf("ERROR:%T", err)
 
 	defer conn.Close()
 
 	msg.Print()
 	msg.Send(conn)
-    return err
-	// receiveNotification(conn)
+	return err
+}
+
+/* Get the md5sum of the file */
+func hashFile(file *os.File) string {
+	hash := md5.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Hash: %x\n", hash.Sum(nil))
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+/* Write to filehash.txt */
+func writeHashFile(file *os.File, fileName string) {
+	hash := hashFile(file)
+	fileHash := getHashFileName(fileName)
+	writeToFile(hash, fileHash)
+}
+
+/* Add checksum to the end of file */
+func getHashFileName(fileName string) string {
+	return fileName + ".checksum"
+}
+
+/* Check if the hashes matched */
+func checkMatchWithHash(fileName string) bool {
+	fileHash := getHashFileName(fileName)
+	storedHash, err := ioutil.ReadFile(fileHash)
+	if err != nil {
+		log.Fatalf("failed reading from file: %s", err)
+	}
+	file, err := os.Open(fileName)
+	if err != nil {
+		log.Fatalf("failed opening from file: %s", err)
+	}
+	receivedHash := hashFile(file)
+	defer file.Close()
+	log.Printf("Stored hash : %s\n", string(storedHash))
+	log.Printf("Received hash : %s\n", receivedHash)
+	if strings.Compare(string(storedHash), receivedHash) == 0 {
+		return true
+	} else {
+		log.Println("Hashes don't match")
+		return false
+	}
+}
+
+/* Write to file */
+func writeToFile(hash string, file string) {
+	openFile(file)
+	hashData := []byte(hash)
+	err := ioutil.WriteFile(file, hashData, 0777)
+	if err != nil {
+		log.Fatalf("failed writing to file: %s", err)
+	}
+}
+
+/* Open file */
+func openFile(file string) {
+	f, err := os.OpenFile(file, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+	if err != nil {
+		log.Fatalf("failed opening file: %s", err.Error())
+		return
+	}
+	defer f.Close()
 }
 
 func main() {
 	userInput = os.Args
-    log.Printf("%s", userInput[1])
-    listener, err := net.Listen("tcp", userInput[1])
-    //listener, err := net.Listen("tcp", "localhost:7777")
+	log.Printf("%s", userInput[1])
+	listener, err := net.Listen("tcp", userInput[1])
 
 	if err != nil {
 		log.Fatalln(err.Error())
