@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"os"
+    "strings"
+    "bytes"
 )
 
 type SendRequest func(string) *message.Message
@@ -17,9 +19,29 @@ var msgRequester = map[string]SendRequest{
 	"delete": sendDeleteReq,
 }
 
+//var fileDir string
+
 /* Creating message for put request */
 func sendPutReq(fileName string) *message.Message {
-	fileStat, err := os.Stat(fileName)
+
+    if (strings.Contains(fileName, "/")) {
+        // handle absolute path
+	    path := strings.Split(fileName, "/")
+        log.Println(path)
+        fileName = path[len(path)-1]
+        var dirBuf bytes.Buffer
+
+        for i := 0; i < len(path) - 1; i++ {
+	        fmt.Fprintf(&dirBuf, "%s/", path[i])
+        }
+
+        dirBuf.Truncate(dirBuf.Len() - 1)
+        directory := dirBuf.String() // Copy into a new string
+        log.Println(directory)
+        changeDirectory(directory)
+    }
+
+    fileStat, err := os.Stat(fileName)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -58,9 +80,21 @@ func receiveNotification(conn net.Conn) {
 	}
 }
 
+func changeDirectory(path string) {
+	//path, _ = os.Getwd()
+	//msg.Check(err)
+	log.Printf("Client current directory: %s\n", path)
+	os.Chdir(path)
+	path, _ = os.Getwd()
+	//msg.Check(err)
+	log.Printf("New Client current working directory: %s\n", path)
+}
+
 func main() {
 	userInput := os.Args
 	conn, err := net.Dial("tcp", userInput[1])
+//    fileDir = userInput[3]
+//   filename string
 
 	if err != nil {
 		log.Fatalln(err.Error())

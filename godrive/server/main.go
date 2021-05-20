@@ -39,7 +39,7 @@ func handleConnection(conn net.Conn) {
 
     log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
     if msg.Head.Type != 1 && msg.Head.Type != 2 {
-        if msg.Counter != 0 {
+        if msg.Counter > 0 {
             msg.Counter = msg.Counter - 1
             path, _ := os.Getwd()
 		    log.Printf("New DIAL working directory: %s\n", path)
@@ -132,6 +132,18 @@ func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		} else {
 			msg.Body = "File is corrupted"
 			log.Println(msg.Body)
+
+            if msg.Counter > 0 {
+                msg.Counter = msg.Counter - 1
+                err := dialConnection(msg)
+                if err != nil {
+                    note := "backup server failed"
+                    sendMessage(note, conn)
+                    return
+                }
+                msg.PutRequest(conn)
+            }
+
 			return
 		}
 	}

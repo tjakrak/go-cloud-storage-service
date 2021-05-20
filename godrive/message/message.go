@@ -116,8 +116,8 @@ func (m *Message) GetRequest(conn net.Conn) error {
 	}
 
 	file, err := os.OpenFile(m.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-	m.Check(err)
 
+    log.Printf("%T", file)
 	log.Printf("MSG GetRequest -> Header size: %d\n", m.Head.Size)
 	bytes, err := io.CopyN(file, cconn, m.Head.Size)
 	m.Check(err)
