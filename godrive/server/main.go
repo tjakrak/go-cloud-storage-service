@@ -36,19 +36,8 @@ func handleConnection(conn net.Conn) {
 	msg := &message.Message{}
 	decoder.Decode(msg)
 
-	log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
 	if msg.Head.Type == 3 {
-		if msg.Counter > 0 {
-			msg.Counter = msg.Counter - 1
-			path, _ := os.Getwd()
-			log.Printf("New DIAL working directory: %s\n", path)
-			err := dialConnection(msg)
-			if err != nil {
-				note := "backup server failed"
-				sendMessage(note, conn)
-				return
-			}
-		}
+		connectToBackUpServer(msg, conn)
 	}
 
 	changeDirectory(msg)
@@ -63,19 +52,24 @@ func handleConnection(conn net.Conn) {
 		log.Println("No handler for message type: ", header.Type)
 	}
 
-	log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
 	if msg.Head.Type == 0 {
-		if msg.Counter > 0 {
-			msg.Counter = msg.Counter - 1
-			path, _ := os.Getwd()
-			log.Printf("New DIAL working directory: %s\n", path)
-			err := dialConnection(msg)
-			if err != nil {
-				os.Remove(msg.Head.Filename)
-				note := "backup server failed"
-				sendMessage(note, conn)
-				return
-			}
+		connectToBackUpServer(msg, conn)
+	}
+}
+
+/* Connecting to the backup server */
+func connectToBackUpServer(msg *message.Message, conn net.Conn) {
+	log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
+	if msg.Counter > 0 {
+		msg.Counter = msg.Counter - 1
+		path, _ := os.Getwd()
+		log.Printf("New DIAL working directory: %s\n", path)
+		err := dialConnection(msg)
+		if err != nil {
+			os.Remove(msg.Head.Filename)
+			note := "backup server failed"
+			sendMessage(note, conn)
+			return
 		}
 	}
 }
@@ -120,7 +114,6 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 	} else {
 		note = "File already exists. Please delete existing file first."
 	}
-
 	sendMessage(note, conn)
 }
 
@@ -188,6 +181,9 @@ func handleDeleteReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		note = "File doesn't exist"
 	} else {
 		err := os.Remove(msg.Head.Filename)
+		msg.Check(err)
+		checksum := getHashFileName(msg.Head.Filename)
+		err = os.Remove(checksum)
 		msg.Check(err)
 		note = msg.Head.Filename + " is deleted"
 	}
