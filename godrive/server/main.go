@@ -37,7 +37,11 @@ func handleConnection(conn net.Conn) {
 	decoder.Decode(msg)
 
 	if msg.Head.Type == 3 {
-		connectToBackUpServer(msg, conn)
+		err := connectToBackUpServer(msg, conn)
+		if err != nil {
+			note := "backup server failed during get request"
+			sendMessage(note, conn)
+		}
 	}
 
 	changeDirectory(msg)
@@ -53,25 +57,26 @@ func handleConnection(conn net.Conn) {
 	}
 
 	if msg.Head.Type == 0 {
-		connectToBackUpServer(msg, conn)
+		err := connectToBackUpServer(msg, conn)
+		if err != nil {
+			os.Remove(msg.Head.Filename)
+			note := "backup server failed during put request"
+			sendMessage(note, conn)
+		}
 	}
 }
 
 /* Connecting to the backup server */
-func connectToBackUpServer(msg *message.Message, conn net.Conn) {
+func connectToBackUpServer(msg *message.Message, conn net.Conn) error {
 	log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
 	if msg.Counter > 0 {
 		msg.Counter = msg.Counter - 1
 		path, _ := os.Getwd()
 		log.Printf("New DIAL working directory: %s\n", path)
 		err := dialConnection(msg)
-		if err != nil {
-			os.Remove(msg.Head.Filename)
-			note := "backup server failed"
-			sendMessage(note, conn)
-			return
-		}
+		return err
 	}
+	return nil
 }
 
 /* Change directory to storage */
