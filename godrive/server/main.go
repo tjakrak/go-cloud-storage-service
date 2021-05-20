@@ -37,7 +37,7 @@ func handleConnection(conn net.Conn) {
 	decoder.Decode(msg)
 
     log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
-    if msg.Head.Type != 1 && msg.Head.Type != 2 {
+    if msg.Head.Type == 3 {
         if msg.Counter > 0 {
             msg.Counter = msg.Counter - 1
             path, _ := os.Getwd()
@@ -62,6 +62,22 @@ func handleConnection(conn net.Conn) {
 	} else {
 		log.Println("No handler for message type: ", header.Type)
 	}
+
+    log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
+    if msg.Head.Type == 0 {
+        if msg.Counter > 0 {
+            msg.Counter = msg.Counter - 1
+            path, _ := os.Getwd()
+		    log.Printf("New DIAL working directory: %s\n", path)
+            err := dialConnection(msg)
+            if err != nil {
+                os.Remove(msg.Head.Filename)
+                note := "backup server failed"
+                sendMessage(note, conn)
+                return
+            }
+        }
+    }
 }
 
 /* Change directory to storage */
@@ -106,7 +122,7 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		note = "File already exists. Please delete existing file first."
 	}
 
-	os.Chdir("..")
+	//os.Chdir("..")
 	sendMessage(note, conn)
 }
 
