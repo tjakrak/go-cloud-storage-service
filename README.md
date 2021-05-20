@@ -7,7 +7,8 @@ See project spec here: https://www.cs.usfca.edu/~mmalensek/cs521/assignments/pro
 GoDrive is a cloud storage system similar to Dropbox or Google Drive, with resilient, replicated backend servers and a command line client application. This project uses the go standard library and socket programming.
 
 ### GoDrive Design
-![GoDrive](https://user-images.githubusercontent.com/60201466/118353545-9dbbb100-b51b-11eb-8a67-487c521815a8.jpg)
+![GoDrive](https://user-images.githubusercontent.com/60201466/119010812-49fcfd80-b949-11eb-87fc-2c9f3837cd1f.jpg)
+
 
 ### How to use GoDrive
 
@@ -40,7 +41,7 @@ go run ./server/main.go 192.168.122.215:7778 192.168.122.215:7777 storageB
 
 Client
 ```bash
-go run client/main.go 192.168.122.212:7777 put file.txt
+go run client/main.go 192.168.122.212:7777 put ./file.txt
 go run client/main.go 192.168.122.212:7777 get file.txt
 go run client/main.go 192.168.122.212:7777 search file.txt
 go run client/main.go 192.168.122.212:7777 delete file.txt
@@ -75,7 +76,7 @@ There are several files included. These are:
    - <b>Makefile</b>: Including to compile and run the program.
    - <b>server/main.go</b>: The server driver that listens and responses to client requests
    - <b>client/main.go</b>: The client driver that send out message requests
-   - <b>messages.go</b>: Shared put, get, delete and search message requests
+   - <b>message.go</b>: Shared put, get, delete and search message requests
  
  There are also directories to store shared files:
    - <b>storageA</b>: for the main server
