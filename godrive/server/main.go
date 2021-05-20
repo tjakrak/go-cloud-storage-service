@@ -14,6 +14,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type RequestHandler func(net.Conn, *bufio.Reader, *message.Message)
@@ -42,6 +43,16 @@ func handleConnection(conn net.Conn) {
 			note := "backup server failed during get request"
 			sendMessage(note, conn)
 		}
+	} else if msg.Head.Type == 0 {
+		timeout := 1 * time.Second
+		conn2, err := net.DialTimeout("tcp", userInput[2], timeout)
+		if err != nil {
+			log.Println("Backup server unreachable, error: ", err)
+		}
+		log.Printf("%T", conn2)
+		note := "backup server failed"
+		sendMessage(note, conn)
+		msg.Send(conn)
 	}
 
 	changeDirectory(msg)
@@ -60,6 +71,7 @@ func handleConnection(conn net.Conn) {
 		err := connectToBackUpServer(msg, conn)
 		if err != nil {
 			os.Remove(msg.Head.Filename)
+			os.Remove(getHashFileName(msg.Head.Filename))
 			note := "backup server failed during put request"
 			sendMessage(note, conn)
 		}
@@ -114,10 +126,10 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		log.Printf("SERVER PUT -> New file size: %d\n", bytes)
 		file.Seek(0, 0)
 		writeHashFile(file, msg.Head.Filename)
-		note = "File " + msg.Head.Filename + " is stored"
+		note = "File " + msg.Head.Filename + " is stored\n"
 		defer file.Close()
 	} else {
-		note = "File already exists. Please delete existing file first."
+		note = "File already exists. Please delete existing file first.\n"
 	}
 	sendMessage(note, conn)
 }
