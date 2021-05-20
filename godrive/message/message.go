@@ -51,7 +51,6 @@ func (m *Message) Send(conn net.Conn) error {
 	if m.Head.Type == 0 {
 		err = m.PutRequest(conn)
 	} else if m.Head.Type == 1 {
-		log.Println("Hey sending a get message...")
 		err = m.GetRequest(conn)
 	} else if m.Head.Type == 2 {
 		err = m.SearchRequest(conn)
@@ -88,7 +87,7 @@ func (m *Message) setEncoder(conn net.Conn) error {
 
 /* PutRequest storing file */
 func (m *Message) PutRequest(conn net.Conn) error {
-	log.Printf("FILENAME: %s", m.Head.Filename)
+	log.Printf("MSG PutRequest filename: %s", m.Head.Filename)
 	file, err := os.OpenFile(m.Head.Filename, os.O_RDONLY, 0666)
 	m.Check(err)
 
@@ -107,22 +106,17 @@ func (m *Message) PutRequest(conn net.Conn) error {
 
 /* GetRequest to retrieve file */
 func (m *Message) GetRequest(conn net.Conn) error {
-	log.Println(m.Body)
-	log.Println(m.Head.Type)
-	log.Println(m.Head.Filename)
 	m.setEncoder(conn)
 	cconn := bufio.NewReader(conn)
 	decoder := gob.NewDecoder(cconn)
 	err := decoder.Decode(m)
-	log.Println(err)
 	if err != nil {
 		fmt.Println("Download failed. File is corrupted or not found.")
 		return err
 	}
 
 	file, err := os.OpenFile(m.Head.Filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-
-    log.Printf("%T", file)
+	m.Check(err)
 	log.Printf("MSG GetRequest -> Header size: %d\n", m.Head.Size)
 	bytes, err := io.CopyN(file, cconn, m.Head.Size)
 	m.Check(err)

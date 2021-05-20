@@ -36,20 +36,20 @@ func handleConnection(conn net.Conn) {
 	msg := &message.Message{}
 	decoder.Decode(msg)
 
-    log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
-    if msg.Head.Type == 3 {
-        if msg.Counter > 0 {
-            msg.Counter = msg.Counter - 1
-            path, _ := os.Getwd()
-		    log.Printf("New DIAL working directory: %s\n", path)
-            err := dialConnection(msg)
-            if err != nil {
-                note := "backup server failed"
-                sendMessage(note, conn)
-                return
-            }
-        }
-    }
+	log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
+	if msg.Head.Type == 3 {
+		if msg.Counter > 0 {
+			msg.Counter = msg.Counter - 1
+			path, _ := os.Getwd()
+			log.Printf("New DIAL working directory: %s\n", path)
+			err := dialConnection(msg)
+			if err != nil {
+				note := "backup server failed"
+				sendMessage(note, conn)
+				return
+			}
+		}
+	}
 
 	changeDirectory(msg)
 	log.Printf("Filename: %s", msg.Head.Filename)
@@ -63,21 +63,21 @@ func handleConnection(conn net.Conn) {
 		log.Println("No handler for message type: ", header.Type)
 	}
 
-    log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
-    if msg.Head.Type == 0 {
-        if msg.Counter > 0 {
-            msg.Counter = msg.Counter - 1
-            path, _ := os.Getwd()
-		    log.Printf("New DIAL working directory: %s\n", path)
-            err := dialConnection(msg)
-            if err != nil {
-                os.Remove(msg.Head.Filename)
-                note := "backup server failed"
-                sendMessage(note, conn)
-                return
-            }
-        }
-    }
+	log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
+	if msg.Head.Type == 0 {
+		if msg.Counter > 0 {
+			msg.Counter = msg.Counter - 1
+			path, _ := os.Getwd()
+			log.Printf("New DIAL working directory: %s\n", path)
+			err := dialConnection(msg)
+			if err != nil {
+				os.Remove(msg.Head.Filename)
+				note := "backup server failed"
+				sendMessage(note, conn)
+				return
+			}
+		}
+	}
 }
 
 /* Change directory to storage */
@@ -102,7 +102,6 @@ func changeDirectory(msg *message.Message) string {
 
 /* Handling put request */
 func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
-	log.Println("Inside put request")
 	path := changeDirectory(msg)
 	path += "/" + msg.Head.Filename
 	var note string
@@ -122,7 +121,6 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		note = "File already exists. Please delete existing file first."
 	}
 
-	//os.Chdir("..")
 	sendMessage(note, conn)
 }
 
@@ -148,16 +146,16 @@ func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 			msg.Body = "File is corrupted, repairing from backup server"
 			log.Println(msg.Body)
 
-            if msg.Counter > 0 {
-                msg.Counter = msg.Counter - 1
-                err := dialConnection(msg)
-                if err != nil {
-                    note := "backup server failed"
-                    sendMessage(note, conn)
-                    return
-                }
-                msg.PutRequest(conn)
-            }
+			if msg.Counter > 0 {
+				msg.Counter = msg.Counter - 1
+				err := dialConnection(msg)
+				if err != nil {
+					note := "backup server failed"
+					sendMessage(note, conn)
+					return
+				}
+				msg.PutRequest(conn)
+			}
 			return
 		}
 	}
