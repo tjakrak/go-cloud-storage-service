@@ -48,11 +48,10 @@ func handleConnection(conn net.Conn) {
 		conn2, err := net.DialTimeout("tcp", userInput[2], timeout)
 		if err != nil {
 			log.Println("Backup server unreachable, error: ", err)
+			log.Printf("%T", conn2)
+			note := "backup server failed"
+			sendMessage(note, conn)
 		}
-		log.Printf("%T", conn2)
-		note := "backup server failed"
-		sendMessage(note, conn)
-		msg.Send(conn)
 	}
 
 	changeDirectory(msg)
