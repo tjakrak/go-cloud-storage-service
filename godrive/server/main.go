@@ -36,21 +36,20 @@ func handleConnection(conn net.Conn) {
 	msg := &message.Message{}
 	decoder.Decode(msg)
 
-
-    log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
-    if msg.Head.Type != 1 && msg.Head.Type != 2 {
-        if msg.Counter != 0 {
-            msg.Counter = msg.Counter - 1
-            path, _ := os.Getwd()
-		    log.Printf("New DIAL working directory: %s\n", path)
-            err := dialConnection(msg)
-            if err != nil {
-                note := "backup server failed"
-                sendMessage(note, conn)
-                return
-            }
-        }
-    }
+	log.Printf("DIAL COUNTER: %d ---- %d", msg.Counter, msg.Head.Type)
+	if msg.Head.Type != 1 && msg.Head.Type != 2 {
+		if msg.Counter != 0 {
+			msg.Counter = msg.Counter - 1
+			path, _ := os.Getwd()
+			log.Printf("New DIAL working directory: %s\n", path)
+			err := dialConnection(msg)
+			if err != nil {
+				note := "backup server failed"
+				sendMessage(note, conn)
+				return
+			}
+		}
+	}
 
 	changeDirectory(msg)
 	log.Printf("Filename: %s", msg.Head.Filename)
@@ -107,7 +106,7 @@ func handlePutReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		note = "File already exists. Please delete existing file first."
 	}
 
-    os.Chdir("..")
+	os.Chdir("..")
 	sendMessage(note, conn)
 }
 
@@ -130,8 +129,21 @@ func handleGetReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 			msg.Body = note
 			msg.PutRequest(conn)
 		} else {
-			msg.Body = "File is corrupted"
+			msg.Body = "File is corrupted, repairing from backup server"
 			log.Println(msg.Body)
+			log.Println(msg.Head.Type)
+			log.Println(msg.Head.Filename)
+			if msg.Counter != 0 {
+				log.Println("Inside if statement---> counter is now 0")
+				msg.Counter = 0
+				err := dialConnection(msg)
+				if err != nil {
+					log.Println("Back up server is also corrupted")
+					return
+				}
+				log.Println("File is repaired, sending back to client")
+				msg.PutRequest(conn)
+			}
 			return
 		}
 	}
@@ -168,7 +180,7 @@ func handleDeleteReq(conn net.Conn, bconn *bufio.Reader, msg *message.Message) {
 		note = msg.Head.Filename + " is deleted"
 	}
 	fmt.Println(note)
-    os.Chdir("..")
+	os.Chdir("..")
 	sendMessage(note, conn)
 }
 
@@ -179,16 +191,18 @@ func sendMessage(note string, conn net.Conn) {
 
 /* Creating a connection to a backup server */
 func dialConnection(msg *message.Message) error {
+	log.Printf("backup server is: %s", userInput[2])
 	conn, err := net.Dial("tcp", userInput[2])
 
 	if err != nil {
+		log.Printf("ERROR in dial connection:%T", err)
 		return err
 	}
-	log.Printf("ERROR:%T", err)
 
 	defer conn.Close()
 
 	msg.Print()
+	log.Println("dial connection is sending message....")
 	msg.Send(conn)
 	return err
 }
