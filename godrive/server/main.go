@@ -37,6 +37,7 @@ func handleConnection(conn net.Conn) {
 	msg := &message.Message{}
 	decoder.Decode(msg)
 
+	log.Println("After decode")
 	if msg.Head.Type == 3 {
 		err := connectToBackUpServer(msg, conn)
 		if err != nil {

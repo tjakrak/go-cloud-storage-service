@@ -95,6 +95,7 @@ func main() {
 	}
 
 	defer conn.Close()
+
 	var msg *message.Message
 	request := msgRequester[userInput[2]]
 	if request != nil {

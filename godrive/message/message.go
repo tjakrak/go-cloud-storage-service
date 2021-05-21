@@ -90,14 +90,18 @@ func (m *Message) PutRequest(conn net.Conn) error {
 	log.Printf("MSG PutRequest filename: %s", m.Head.Filename)
 	file, err := os.OpenFile(m.Head.Filename, os.O_RDONLY, 0666)
 	m.Check(err)
+	log.Println(m.Head.Filename)
+	log.Println(m.Head.Size)
+	log.Println(m.Head.Type)
 
 	bconn := bufio.NewWriter(conn)
 	encoder := gob.NewEncoder(bconn)
 	err = encoder.Encode(m)
 	m.Check(err)
-
 	sz, err := io.Copy(bconn, file)
-	m.Check(err)
+	if err != nil {
+		return nil
+	}
 	log.Printf("Storing file size: %d", sz)
 
 	bconn.Flush()
